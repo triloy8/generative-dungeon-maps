@@ -21,13 +21,13 @@ class Environment:
         scrx/ scry: PyGame screen sizes
         screen: The PyGame Screen
     """
-    def __init__(self, state_size, action_size, value_size, scrx, scry, screen, initial_walkable_tiles):
+    def __init__(self, state_size, action_size, value_size, scrx, scry, screen, initial_walkable_tiles, target_path):
         """The init method for the Environment class"""
         self.state_size = state_size
         self.action_size = action_size
         self.value_size = value_size
         self.num_initial_walkable_tiles = initial_walkable_tiles
-        self.target_path = 20
+        self.target_path = target_path
         self.walkable_tile_color = (51,51,51) 
         self.brick_tile_color = (220, 85, 57)
         self.start_tile_color = (18, 217, 0)
@@ -80,6 +80,10 @@ class Environment:
         old_num_regions = calc_num_regions(old_map_layout, self.walkable_tiles)
         
         self.map_layout[action[0]][action[1]] = value
+        self.walkable_tiles = [(i, j) for i in range(self.state_size)
+                                  for j in range(self.state_size)
+                                  if self.map_layout[i][j] == 0]
+
         new_map_layout = self.map_layout
         new_path_length = calc_longest_path(new_map_layout, self.walkable_tiles)
         new_num_regions = calc_num_regions(new_map_layout, self.walkable_tiles)

@@ -49,7 +49,7 @@ class DQN(nn.Module):
         x = self.activation(self.action_layer5(x))
         x = self.activation(self.action_layer6(x))
         x = self.activation(self.action_layer7(x))
-        x = self.activation(self.action_layer8(x))
+        x = self.action_layer8(x)
         act = x
 
         # Value transformations
@@ -70,10 +70,10 @@ class DQNAgent:
     the Neural Network for the Deep Q-Learning algorithm.
 
     Attributes:
-        state_size: An integer represting the size of the state space (n*n)
-        action_size: An integer represting the size of the action space (n*n)
-        value_size: An integer represting the size of the value space (2)
-        memory: An instance of a custom ReplaMemory class
+        state_size: An integer representing the size of the state space (n*n)
+        action_size: An integer representing the size of the action space (n*n)
+        value_size: An integer representing the size of the value space (2)
+        memory: An instance of a custom ReplayMemory class
         gamma: A float representing the discount factor
         epsilon: A float allowing us to extend an exploration strategy
         epsilon_decay: A float representing the epsilon
@@ -97,7 +97,7 @@ class DQNAgent:
         self.epsilon_min = 0.01
         self.learning_rate = 0.001
         self.DQNmodel = model
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.MSELoss()
         self.optimizer = optim.AdamW(self.DQNmodel.parameters(), lr=self.learning_rate, amsgrad=True)
         self.device = device
     
@@ -110,12 +110,14 @@ class DQNAgent:
         if np.random.rand() <= self.epsilon:
             return random.sample(range(self.state_size), 2), random.randrange(self.value_size)
         with torch.no_grad():
-            action, value = self.DQNmodel(state.to(self.device))
+            action, value = self.DQNmodel(state)
         if (torch.max(action[0])==0):
             return random.sample(range(self.state_size), 2), random.randrange(self.value_size)
         else:
-            action_item = [(action[0]==torch.max(action[0])).nonzero().squeeze()[0].item(), \
-                (action[0]==torch.max(action[0])).nonzero().squeeze()[1].item()]
+            grid = action[0, 0]  # drop the channel axis -> 14x14
+            max_coords = torch.nonzero(grid == grid.max(), as_tuple=False)
+            row, col = max_coords[0].tolist()
+            action_item = [row, col]
             value_item = torch.argmax(value[0]).item()
         
         return action_item, value_item
@@ -131,31 +133,29 @@ class DQNAgent:
         reward_batch = torch.cat(minibatch.reward)
         next_state_batch = torch.cat(minibatch.next_state)
         done_batch = torch.cat(minibatch.done)
-    
+        
         with torch.no_grad():
-            predicted_action_batch, predicted_value_batch = self.DQNmodel(next_state_batch.to(self.device))
-            predicted_action_batch_target, predicted_value_batch_target = self.DQNmodel(state_batch.to(self.device))
-   
+            # next states only need TD targets, so no grad
+            next_act, next_val = self.DQNmodel(next_state_batch.to(self.device))
+
+        # current states must keep grads for the update
+        curr_act, curr_val = self.DQNmodel(state_batch.to(self.device))
+
+        # clone/detach so we can write target values without affecting the graph
+        target_act = curr_act.detach().clone()
+        target_val = curr_val.detach().clone()
+
         for i, done in enumerate(done_batch):
             if done.item():
-                target_action = reward_batch[i].item()
-                target_value = reward_batch[i].item()
-            if not done.item():
-                target_action = (reward_batch[i].item() + self.gamma * torch.max(predicted_action_batch[i]).item())
-                target_value = (reward_batch[i].item() + self.gamma * torch.max(predicted_value_batch[i]).item())
-            predicted_action_batch_target[i][0][action_batch[i][0].item()][action_batch[i][1].item()], \
-            predicted_value_batch_target[i][value_batch[i].item()] = \
-            target_action, target_value
+                target_a = target_v = reward_batch[i].item()
+            else:
+                target_a = reward_batch[i].item() + self.gamma * torch.max(next_act[i]).item()
+                target_v = reward_batch[i].item() + self.gamma * torch.max(next_val[i]).item()
 
-        diff_predicted_action_batch = predicted_action_batch.clone().detach().requires_grad_(True)
-        diff_predicted_action_batch_target = predicted_action_batch_target.clone().detach().requires_grad_(True)
-        
-        diff_predicted_value_batch = predicted_value_batch.clone().detach().requires_grad_(True)
-        diff_predicted_value_batch_target = predicted_value_batch_target.clone().detach().requires_grad_(True)
+            target_act[i, 0, action_batch[i][0].item(), action_batch[i][1].item()] = target_a
+            target_val[i, value_batch[i].item()] = target_v
 
-        loss = self.criterion(diff_predicted_action_batch, diff_predicted_action_batch_target) + \
-            self.criterion(diff_predicted_value_batch, diff_predicted_value_batch_target)
-        
+        loss = self.criterion(curr_act, target_act) + self.criterion(curr_val, target_val)
         
         self.optimizer.zero_grad()
         loss.backward()
