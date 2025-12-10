@@ -220,3 +220,4 @@ todo/
 *.pdf
 *.txt
 model_output/
+wandb/

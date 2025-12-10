@@ -1,13 +1,20 @@
-import pygame
-from tqdm import tqdm
 import os
+
+import pygame
 import torch
+from tqdm import tqdm
+
 from agent import DQN, DQNAgent
 from environment import Environment
 
+try:
+    import wandb
+except ImportError:
+    wandb = None
+
 # Choosing the device either CPU or GPU / dtype
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-dtype = torch.bfloat16
+dtype = torch.float32
 
 # The size of the map 
 n = 7
@@ -46,16 +53,35 @@ model = DQN(state_size, action_size, value_size)
 model.to(device).to(dtype)
 agent = DQNAgent(state_size, action_size, value_size, model, device) 
 
+wandb_run = None
+if wandb is not None:
+    wandb_run = wandb.init(
+        project="dqn-debug",
+        config={
+            "n": n,
+            "state_size": state_size,
+            "batch_size": batch_size,
+            "n_episodes": n_episodes,
+            "n_frames": n_frames,
+            "initial_walkable_tiles": initial_walkable_tiles,
+            "target_path": target_path,
+            "epsilon_decay": agent.epsilon_decay,
+            "learning_rate": agent.learning_rate,
+        },
+    )
+
 # Initializing the environment
 env = Environment(state_size, action_size, value_size, scrx, scry, screen, initial_walkable_tiles, target_path)
 map_layout = env.reset()
 
 # The main training loop for the the DQN algorithm
 run = True
+global_step = 0
 while run:
     done = 0
     for e in tqdm(range(n_episodes), desc="Number of episodes", unit="episode"):
         map_layout = env.reset()
+        episode_reward = 0.0
         for frame in tqdm(range(n_frames), desc="Number of frames", unit="frame"):
             env.render()
             pygame.display.flip()
@@ -63,6 +89,7 @@ while run:
             new_map_layout, reward, done = env.step(action, value)
             # if the n_frames frames weren't enough
             reward = reward if not done else -10
+            episode_reward += reward
             agent.remember(
                 torch.tensor(map_layout, dtype=dtype, device=device).unsqueeze(0).unsqueeze(0),
                 torch.tensor(action, dtype=torch.int8, device=device).unsqueeze(0),
@@ -71,16 +98,49 @@ while run:
                 torch.tensor(new_map_layout, dtype=dtype, device=device).unsqueeze(0).unsqueeze(0),
                 torch.tensor(done, dtype=torch.int8, device=device).unsqueeze(0),
             )
+            map_layout = new_map_layout
+            global_step += 1
+            if wandb_run is not None:
+                wandb_run.log(
+                    {
+                        "reward": reward,
+                        "epsilon": agent.epsilon,
+                        "done_flag": float(done),
+                        "frame_index": frame,
+                        "episode_index": e,
+                    },
+                    step=global_step,
+                )
             if done:
                 print("episode: {}/{}, score: {}, e: {:.2}".format(e, n_episodes, frame, agent.epsilon))
+                if wandb_run is not None:
+                    wandb_run.log(
+                        {
+                            "episode_reward": episode_reward,
+                            "episode_length": frame + 1,
+                            "episode_index": e,
+                        },
+                        step=global_step,
+                    )
                 break
+            replay_loss = None
+            replay_stats = None
             if len(agent.memory) >= batch_size:
-                agent.replay(batch_size)
+                replay_loss, replay_stats = agent.replay(batch_size)
+            if wandb_run is not None and replay_loss is not None:
+                log_payload = {"replay_loss": replay_loss}
+                if replay_stats:
+                    log_payload.update(replay_stats)
+                wandb_run.log(log_payload, step=global_step)
             if e % 50 == 0:
-                agent.save(output_dir + "weights_" + '{:04d}'.format(e) + ".pt")   
+                agent.save(output_dir + "weights_" + '{:04d}'.format(e) + ".pt")
+                if wandb_run is not None:
+                    wandb_run.log({"checkpoint_episode": e}, step=global_step)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
     
 pygame.quit()
+if wandb_run is not None:
+    wandb_run.finish()

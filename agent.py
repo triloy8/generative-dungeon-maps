@@ -95,9 +95,11 @@ class DQNAgent:
         self.epsilon = 1.0 
         self.epsilon_decay = 0.999
         self.epsilon_min = 0.01
-        self.learning_rate = 0.001
+        self.learning_rate = 0.00005
+        self.clip_min = -10.0
+        self.clip_max = 10.0
         self.DQNmodel = model
-        self.criterion = nn.MSELoss()
+        self.criterion = nn.SmoothL1Loss()
         self.optimizer = optim.AdamW(self.DQNmodel.parameters(), lr=self.learning_rate, amsgrad=True)
         self.device = device
     
@@ -133,7 +135,7 @@ class DQNAgent:
         reward_batch = torch.cat(minibatch.reward)
         next_state_batch = torch.cat(minibatch.next_state)
         done_batch = torch.cat(minibatch.done)
-        
+
         with torch.no_grad():
             # next states only need TD targets, so no grad
             next_act, next_val = self.DQNmodel(next_state_batch.to(self.device))
@@ -152,10 +154,20 @@ class DQNAgent:
                 target_a = reward_batch[i].item() + self.gamma * torch.max(next_act[i]).item()
                 target_v = reward_batch[i].item() + self.gamma * torch.max(next_val[i]).item()
 
+            target_a = max(min(target_a, self.clip_max), self.clip_min)
+            target_v = max(min(target_v, self.clip_max), self.clip_min)
+
             target_act[i, 0, action_batch[i][0].item(), action_batch[i][1].item()] = target_a
             target_val[i, value_batch[i].item()] = target_v
 
-        loss = self.criterion(curr_act, target_act) + self.criterion(curr_val, target_val)
+        arange_idx = torch.arange(batch_size, device=self.device)
+        row_idx = action_batch[:, 0].long()
+        col_idx = action_batch[:, 1].long()
+        pred_q = curr_act[arange_idx, 0, row_idx, col_idx]
+        target_q = target_act[arange_idx, 0, row_idx, col_idx]
+        action_loss = self.criterion(pred_q, target_q)
+
+        loss = action_loss + self.criterion(curr_val, target_val)
         
         self.optimizer.zero_grad()
         loss.backward()
@@ -164,6 +176,17 @@ class DQNAgent:
     
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+        
+        debug_stats = {
+            "curr_act_max": curr_act.detach().abs().max().item(),
+            "next_act_max": next_act.detach().abs().max().item(),
+            "target_act_max": target_act.abs().max().item(),
+            "reward_max": reward_batch.abs().max().item(),
+            "curr_val_max": curr_val.detach().abs().max().item(),
+            "target_val_max": target_val.abs().max().item(),
+        }
+        
+        return loss.item(), debug_stats
     
     def save(self, name):
         """Saving the model weights"""
