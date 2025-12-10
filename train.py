@@ -4,7 +4,7 @@ import pygame
 import torch
 from tqdm import tqdm
 
-from agent import DQN, DQNAgent
+from agent import DQNAgent
 from environment import Environment
 
 try:
@@ -34,13 +34,13 @@ batch_size = 40
 
 # The number of episodes for an RL algo / number of frames 
 n_episodes = 1000
-n_frames = 50
+n_frames = 100
 
 # The initial walkable tiles of the first map layout
 initial_walkable_tiles = 30
 
 # Target path boundary
-target_path = 3
+target_path = 0
 
 # Creating an output folder for the model weights
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -48,10 +48,8 @@ output_dir = os.path.join(dir_path ,"model_output/dqn/")
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-# Initializing the model and agent
-model = DQN(state_size, action_size, value_size)
-model.to(device).to(dtype)
-agent = DQNAgent(state_size, action_size, value_size, model, device) 
+# Initializing agent
+agent = DQNAgent(state_size, action_size, value_size, dtype, device)
 
 wandb_run = None
 if wandb is not None:
