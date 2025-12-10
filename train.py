@@ -85,8 +85,6 @@ while run:
             pygame.display.flip()
             action, value = agent.act(torch.tensor(map_layout, dtype=dtype, device=device).unsqueeze(0).unsqueeze(0))
             new_map_layout, reward, done = env.step(action, value)
-            # if the n_frames frames weren't enough
-            reward = reward if not done else -10
             episode_reward += reward
             agent.remember(
                 torch.tensor(map_layout, dtype=dtype, device=device).unsqueeze(0).unsqueeze(0),

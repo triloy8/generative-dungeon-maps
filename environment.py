@@ -100,5 +100,7 @@ class Environment:
         num_regions_range_reward = get_range_reward(new_num_regions, old_num_regions, 1, 1)
 
         reward = num_regions_range_reward * self.rewards["regions"] + path_length_range_reward * self.rewards["path-length"]
+        if done:
+            reward = -10
         
         return new_map_layout, reward, done
