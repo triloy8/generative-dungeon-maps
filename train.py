@@ -73,9 +73,8 @@ env = Environment(state_size, action_size, value_size, scrx, scry, screen, initi
 map_layout = env.reset()
 
 # The main training loop for the the DQN algorithm
-run = True
 global_step = 0
-while run:
+while True:
     done = 0
     for e in tqdm(range(n_episodes), desc="Number of episodes", unit="episode"):
         map_layout = env.reset()
@@ -128,14 +127,13 @@ while run:
                 if replay_stats:
                     log_payload.update(replay_stats)
                 wandb_run.log(log_payload, step=global_step)
-            if e % 50 == 0:
-                agent.save(output_dir + "weights_" + '{:04d}'.format(e) + ".pt")
-                if wandb_run is not None:
-                    wandb_run.log({"checkpoint_episode": e}, step=global_step)
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    run = False
+        if e % 50 == 0:
+            agent.save(output_dir + "weights_" + '{:04d}'.format(e) + ".pt")
+            if wandb_run is not None:
+                wandb_run.log({"checkpoint_episode": e}, step=global_step)
+
+            
     
 pygame.quit()
 if wandb_run is not None:
