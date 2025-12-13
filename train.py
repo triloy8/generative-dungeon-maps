@@ -16,8 +16,11 @@ except ImportError:
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dtype = torch.float32
 
-# The size of the map 
+# The size of the map
 n = 7
+
+# The initial walkable tiles of the first map layout
+initial_walkable_tiles = 24
 
 # The size of the PyGame screen and screen itself
 scrx = n*50
@@ -29,15 +32,12 @@ state_size = n # n*n
 action_size = n # n*n
 value_size = 2
 
-# The batch size used to sample the replay memory to train the agent 
-batch_size = 40
+# The batch size used to sample the replay mesmory to train the agent 
+batch_size = 16
 
 # The number of episodes for an RL algo / number of frames 
 n_episodes = 1000
 n_frames = 100
-
-# The initial walkable tiles of the first map layout
-initial_walkable_tiles = 30
 
 # Target path boundary
 target_path = 0

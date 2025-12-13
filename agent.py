@@ -19,45 +19,37 @@ class DQN(nn.Module):
     def __init__(self, state_size, action_size, value_size):
         """The init method for the a torch.nn.Module class"""
         super(DQN, self).__init__()
-        self.kernel_size = 3
-        self.stride = 1 
-        self.same_padding = ((state_size-1)*self.stride-state_size+self.kernel_size)//2
-        self.action_layer1 = nn.Conv2d(1, 32, self.kernel_size, self.stride, padding=self.same_padding)
-        self.action_layer2 = nn.Conv2d(32, 64, self.kernel_size, self.stride, padding=self.same_padding)
-        self.action_layer3 = nn.Conv2d(64, 64, self.kernel_size, self.stride, padding=self.same_padding)
-        self.action_layer4 = nn.Conv2d(64, 64, self.kernel_size, self.stride, padding=self.same_padding)
-        self.action_layer5 = nn.Conv2d(64, 64, self.kernel_size, self.stride, padding=self.same_padding)
-        self.action_layer6 = nn.Conv2d(64, 64, self.kernel_size, self.stride, padding=self.same_padding)
-        self.action_layer7 = nn.Conv2d(64, 64, self.kernel_size, self.stride, padding=self.same_padding)
-        self.action_layer8 = nn.Conv2d(64, 1, self.kernel_size, self.stride, padding=self.same_padding)
+        assert state_size == action_size
+        assert value_size == 2
 
-        self.value_layer1 = nn.Conv2d(1, 64, kernel_size=3, stride=2)
-        self.value_layer2 = nn.Conv2d(64, 64, kernel_size=3, stride=2)
-        self.value_layer3 = nn.Conv2d(64, 64, kernel_size=1, stride=1)
-        self.linear_input_size = (action_size - 3)//4 
-        self.value_layer4 = nn.Linear(64*(self.linear_input_size)**2, value_size)
+        # feature extract
+        self.feature_extractor = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1), nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1), nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), nn.ReLU(),
+        )
 
-        self.activation = nn.ReLU()
+        # action head
+        self.action_head = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), nn.ReLU(),
+            nn.Conv2d(64, 1, kernel_size=1, stride=1, padding=0),
+        )
+        
+        # value head
+        self.value_head = nn.Sequential(
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), nn.ReLU(),
+            nn.AdaptiveAvgPool2d(1),          # [B,64,1,1]
+            nn.Flatten(1),                    # [B,64]
+            nn.Linear(64, value_size)         # [B,2]
+        )
 
     def forward(self, x): 
-        """The forward method doing all the forward transformations"""
-        # Action transformations
-        x = self.activation(self.action_layer1(x))
-        x = self.activation(self.action_layer2(x))
-        x = self.activation(self.action_layer3(x))
-        x = self.activation(self.action_layer4(x))
-        x = self.activation(self.action_layer5(x))
-        x = self.activation(self.action_layer6(x))
-        x = self.activation(self.action_layer7(x))
-        x = self.action_layer8(x)
-        act = x
-
-        # Value transformations
-        x = self.activation(self.value_layer1(x))
-        x = self.activation(self.value_layer2(x))
-        x = self.activation(self.value_layer3(x))
-        val = torch.flatten(x, start_dim=1)
-        val = self.value_layer4(val)
+        """The forward method doing all the transformations"""
+        
+        feat = self.feature_extractor(x)
+        act = self.action_head(feat)
+        val = self.value_head(feat)
 
         return act, val
     
