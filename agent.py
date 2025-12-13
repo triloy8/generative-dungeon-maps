@@ -104,7 +104,7 @@ class DQNAgent:
     
     def remember(self, state, action, value, reward, next_state, done):
         """A method used to update the Replay Memory"""
-        self.memory.push(state, action, reward, value, next_state, done)
+        self.memory.push(state, action, value, reward, next_state, done)
 
     def act(self, state):
         """A method used to predict the agents newest action and value based on a current state"""

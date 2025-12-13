@@ -87,12 +87,12 @@ while run:
             new_map_layout, reward, done = env.step(action, value)
             episode_reward += reward
             agent.remember(
-                torch.tensor(map_layout, dtype=dtype, device=device).unsqueeze(0).unsqueeze(0),
-                torch.tensor(action, dtype=torch.int8, device=device).unsqueeze(0),
-                torch.tensor(reward, dtype=dtype, device=device).unsqueeze(0),
-                torch.tensor(value, dtype=torch.int8, device=device).unsqueeze(0),
-                torch.tensor(new_map_layout, dtype=dtype, device=device).unsqueeze(0).unsqueeze(0),
-                torch.tensor(done, dtype=torch.int8, device=device).unsqueeze(0),
+                state=torch.tensor(map_layout, dtype=dtype, device=device).unsqueeze(0).unsqueeze(0),
+                action=torch.tensor(action, dtype=torch.int8, device=device).unsqueeze(0),
+                value=torch.tensor(value, dtype=torch.int8, device=device).unsqueeze(0),
+                reward=torch.tensor(reward, dtype=dtype, device=device).unsqueeze(0),
+                next_state=torch.tensor(new_map_layout, dtype=dtype, device=device).unsqueeze(0).unsqueeze(0),
+                done=torch.tensor(done, dtype=torch.int8, device=device).unsqueeze(0),
             )
             map_layout = new_map_layout
             global_step += 1
