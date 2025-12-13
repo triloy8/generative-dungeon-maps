@@ -4,6 +4,7 @@ import os
 import numpy as np
 import pygame
 import torch
+from tqdm import tqdm
 
 from agent import DQNAgent
 from environment import Environment
@@ -22,11 +23,12 @@ def observation_to_tensor(observation, device, dtype):
 
 def run_episode(env, agent, device, dtype, render=True, save_dir=None, episode_idx=0):
     observation = env.reset()
+    first_obs = observation
     state_tensor = observation_to_tensor(observation, device, dtype)
     total_reward = 0.0
     done = False
     last_obs = observation
-    for step in range(env.max_iterations):
+    for step in tqdm(range(env.max_iterations), desc=f"Episode {episode_idx+1} steps", unit="step"):
         if render:
             env.render()
             pygame.display.flip()
@@ -44,6 +46,15 @@ def run_episode(env, agent, device, dtype, render=True, save_dir=None, episode_i
         os.makedirs(save_dir, exist_ok=True)
         env.render()
         pygame.image.save(env.screen, os.path.join(save_dir, f"layout_ep{episode_idx:03d}.png"))
+        original_layout = env.map_layout.copy()
+        original_colors = [row[:] for row in env.map_colors]
+        env.map_layout = first_obs["map"].copy()
+        env.heatmap = first_obs["heatmap"].copy()
+        env._update_colors()
+        env.render()
+        pygame.image.save(env.screen, os.path.join(save_dir, f"initial_layout_ep{episode_idx:03d}.png"))
+        env.map_layout = original_layout
+        env.map_colors = original_colors
         heatmap_surface = pygame.Surface(env.screen.get_size())
         heatmap_scaled = (last_obs["heatmap"] / max(1.0, env.max_changes)).clip(0.0, 1.0)
         heatmap_pixels = (heatmap_scaled * 255).astype(np.uint8)
@@ -80,11 +91,11 @@ def main():
         screen = pygame.Surface((scrx, scry))
 
     env = Environment(args.map_size, 2, scrx, scry, screen, args.target_path)
-    agent = DQNAgent(args.map_size, args.map_size, 2, dtype, device)
+    agent = DQNAgent(args.map_size, 2, dtype, device)
     agent.load(args.checkpoint)
     agent.epsilon = 0.0
 
-    for episode in range(args.episodes):
+    for episode in tqdm(range(args.episodes), desc="Inference episodes", unit="episode"):
         total_reward, last_obs, quit_requested = run_episode(
             env,
             agent,
