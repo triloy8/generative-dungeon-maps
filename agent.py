@@ -109,20 +109,20 @@ class DQNAgent:
     def act(self, state):
         """A method used to predict the agents newest action and value based on a current state"""
         if np.random.rand() <= self.epsilon:
-            rand_row = random.randrange(self.state_size)
-            rand_col = random.randrange(self.state_size)
-            return [rand_row, rand_col], random.randrange(self.value_size)
+            rand_x = random.randrange(self.state_size)
+            rand_y = random.randrange(self.state_size)
+            return [rand_x, rand_y], random.randrange(self.value_size)
         with torch.no_grad():
             action, value = self.DQNmodel(state)
         if (torch.max(action[0])==0):
-            rand_row = random.randrange(self.state_size)
-            rand_col = random.randrange(self.state_size)
-            return [rand_row, rand_col], random.randrange(self.value_size)
+            rand_x = random.randrange(self.state_size)
+            rand_y = random.randrange(self.state_size)
+            return [rand_x, rand_y], random.randrange(self.value_size)
         else:
             grid = action[0, 0]  # drop the channel axis -> 14x14
             max_coords = torch.nonzero(grid == grid.max(), as_tuple=False)
             row, col = max_coords[0].tolist()
-            action_item = [row, col]
+            action_item = [col, row]
             value_item = torch.argmax(value[0]).item()
         
         return action_item, value_item
@@ -167,12 +167,12 @@ class DQNAgent:
         td_value = td_value.clamp_(min=self.clip_min, max=self.clip_max)
 
         for i in range(batch_size):
-            target_act[i, 0, action_batch[i][0].item(), action_batch[i][1].item()] = td_action[i].item()
+            target_act[i, 0, action_batch[i][1].item(), action_batch[i][0].item()] = td_action[i].item()
             target_val[i, value_batch[i].item()] = td_value[i].item()
 
         arange_idx = torch.arange(batch_size, device=self.device)
-        row_idx = action_batch[:, 0].long()
-        col_idx = action_batch[:, 1].long()
+        row_idx = action_batch[:, 1].long()
+        col_idx = action_batch[:, 0].long()
         pred_q = curr_act[arange_idx, 0, row_idx, col_idx]
         target_q = target_act[arange_idx, 0, row_idx, col_idx]
         action_loss = self.criterion(pred_q, target_q)
