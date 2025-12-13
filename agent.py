@@ -109,11 +109,15 @@ class DQNAgent:
     def act(self, state):
         """A method used to predict the agents newest action and value based on a current state"""
         if np.random.rand() <= self.epsilon:
-            return random.sample(range(self.state_size), 2), random.randrange(self.value_size)
+            rand_row = random.randrange(self.state_size)
+            rand_col = random.randrange(self.state_size)
+            return [rand_row, rand_col], random.randrange(self.value_size)
         with torch.no_grad():
             action, value = self.DQNmodel(state)
         if (torch.max(action[0])==0):
-            return random.sample(range(self.state_size), 2), random.randrange(self.value_size)
+            rand_row = random.randrange(self.state_size)
+            rand_col = random.randrange(self.state_size)
+            return [rand_row, rand_col], random.randrange(self.value_size)
         else:
             grid = action[0, 0]  # drop the channel axis -> 14x14
             max_coords = torch.nonzero(grid == grid.max(), as_tuple=False)
