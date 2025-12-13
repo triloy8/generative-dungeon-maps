@@ -220,5 +220,6 @@ todo/
 *.pdf
 *.txt
 model_output/
+inference_output/
 wandb/
 gym-pcgrl/
