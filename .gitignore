@@ -221,3 +221,4 @@ todo/
 *.txt
 model_output/
 wandb/
+gym-pcgrl/
