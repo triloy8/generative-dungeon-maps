@@ -36,9 +36,8 @@ scrx = n*50
 scry = n*50
 screen = pygame.display.set_mode((scrx,scry)) 
 
-# The size of the state, action and value size
-state_size = n # n*n
-action_size = n # n*n
+# Grid size and value size
+grid_size = n
 value_size = 2
 
 # The batch size used to sample the replay mesmory to train the agent 
@@ -57,12 +56,12 @@ if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
 # Initializing the environment
-env = Environment(state_size, action_size, value_size, scrx, scry, screen, target_path)
+env = Environment(grid_size, value_size, scrx, scry, screen, target_path)
 env.reset()
 frames_per_episode = env.max_iterations
 
 # Initializing agent
-agent = DQNAgent(state_size, action_size, value_size, dtype, device)
+agent = DQNAgent(grid_size, value_size, dtype, device)
 
 wandb_run = None
 if wandb is not None:
@@ -70,7 +69,7 @@ if wandb is not None:
         project="dqn-debug",
         config={
             "n": n,
-            "state_size": state_size,
+            "grid_size": grid_size,
             "batch_size": batch_size,
             "n_episodes": n_episodes,
             "n_frames": frames_per_episode,

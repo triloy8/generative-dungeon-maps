@@ -16,10 +16,9 @@ class DQN(nn.Module):
         *_layer*: A layer of the model
         activation: An activation function
     """
-    def __init__(self, state_size, action_size, value_size):
+    def __init__(self, grid_size, value_size):
         """The init method for the a torch.nn.Module class"""
         super(DQN, self).__init__()
-        assert state_size == action_size
         assert value_size == 2
 
         # feature extract
@@ -62,8 +61,7 @@ class DQNAgent:
     the Neural Network for the Deep Q-Learning algorithm.
 
     Attributes:
-        state_size: An integer representing the size of the state space (n*n)
-        action_size: An integer representing the size of the action space (n*n)
+        grid_size: An integer representing the width/height of the grid
         value_size: An integer representing the size of the value space (2)
         memory: An instance of a custom ReplayMemory class
         gamma: A float representing the discount factor
@@ -77,12 +75,11 @@ class DQNAgent:
         device: String that tells torch to use either CPU or GPU 
 
     """
-    def __init__(self, state_size, action_size, value_size, dtype, device):
+    def __init__(self, grid_size, value_size, dtype, device):
         """The init method for the DQNAgent class"""
         self.device = device
         self.dtype = dtype
-        self.state_size = state_size
-        self.action_size = action_size
+        self.grid_size = grid_size
         self.value_size = value_size
         self.memory = ReplayMemory(10000)
         self.gamma = 0.95 
@@ -92,10 +89,10 @@ class DQNAgent:
         self.learning_rate = 0.00005
         self.clip_min = -10.0
         self.clip_max = 10.0
-        self.DQNmodel = DQN(state_size, action_size, value_size).to(device=self.device, dtype=self.dtype)
+        self.DQNmodel = DQN(grid_size, value_size).to(device=self.device, dtype=self.dtype)
         self.criterion = nn.SmoothL1Loss()
         self.optimizer = optim.AdamW(self.DQNmodel.parameters(), lr=self.learning_rate, amsgrad=True)
-        self.target_model = DQN(state_size, action_size, value_size).to(device=self.device, dtype=self.dtype)
+        self.target_model = DQN(grid_size, value_size).to(device=self.device, dtype=self.dtype)
         self.target_model.load_state_dict(self.DQNmodel.state_dict())
         for param in self.target_model.parameters():
             param.requires_grad = False
@@ -109,14 +106,14 @@ class DQNAgent:
     def act(self, state):
         """A method used to predict the agents newest action and value based on a current state"""
         if np.random.rand() <= self.epsilon:
-            rand_x = random.randrange(self.state_size)
-            rand_y = random.randrange(self.state_size)
+            rand_x = random.randrange(self.grid_size)
+            rand_y = random.randrange(self.grid_size)
             return [rand_x, rand_y], random.randrange(self.value_size)
         with torch.no_grad():
             action, value = self.DQNmodel(state)
         if (torch.max(action[0])==0):
-            rand_x = random.randrange(self.state_size)
-            rand_y = random.randrange(self.state_size)
+            rand_x = random.randrange(self.grid_size)
+            rand_y = random.randrange(self.grid_size)
             return [rand_x, rand_y], random.randrange(self.value_size)
         else:
             grid = action[0, 0]  # drop the channel axis -> 14x14
@@ -152,8 +149,8 @@ class DQNAgent:
 
         batch_indices = torch.arange(batch_size, device=self.device)
         best_action_flat = next_online_act.view(batch_size, -1).argmax(dim=1)
-        best_action_rows = (best_action_flat // self.state_size).long()
-        best_action_cols = (best_action_flat % self.state_size).long()
+        best_action_rows = (best_action_flat // self.grid_size).long()
+        best_action_cols = (best_action_flat % self.grid_size).long()
         next_q_targets = next_target_act[batch_indices, 0, best_action_rows, best_action_cols]
         best_value_indices = torch.argmax(next_online_val, dim=1)
         next_value_targets = next_target_val[batch_indices, best_value_indices]

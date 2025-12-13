@@ -48,8 +48,8 @@ def run_episode(env, agent, device, dtype, render=True, save_dir=None, episode_i
         heatmap_scaled = (last_obs["heatmap"] / max(1.0, env.max_changes)).clip(0.0, 1.0)
         heatmap_pixels = (heatmap_scaled * 255).astype(np.uint8)
         cell_size = 50
-        for y in range(env.state_size):
-            for x in range(env.state_size):
+        for y in range(env.grid_size):
+            for x in range(env.grid_size):
                 value = heatmap_pixels[y][x]
                 color = (value, value, value)
                 rect = pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size)
@@ -79,7 +79,7 @@ def main():
     else:
         screen = pygame.Surface((scrx, scry))
 
-    env = Environment(args.map_size, args.map_size, 2, scrx, scry, screen, args.target_path)
+    env = Environment(args.map_size, 2, scrx, scry, screen, args.target_path)
     agent = DQNAgent(args.map_size, args.map_size, 2, dtype, device)
     agent.load(args.checkpoint)
     agent.epsilon = 0.0
