@@ -2,10 +2,10 @@
 set -euo pipefail
 
 uv run python3 train.py \
-  --map-size 7 \
+  --map-size  14 \
   --episodes 1000 \
   --batch-size 16 \
-  --target-path 5 \
+  --target-path 20 \
   --checkpoint-dir model_output/dqn \
   --save-every 50 \
   --render \

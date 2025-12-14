@@ -28,7 +28,7 @@ def run_episode(env, agent, device, dtype, render=True, save_dir=None, episode_i
     total_reward = 0.0
     done = False
     last_obs = observation
-    for step in tqdm(range(env.max_iterations), desc=f"Episode {episode_idx+1} steps", unit="step"):
+    for step in tqdm(range(env.max_iterations), desc=f"Episode {episode_idx+1} steps", unit="step", leave=False):
         if render:
             env.render()
             pygame.display.flip()
@@ -45,18 +45,19 @@ def run_episode(env, agent, device, dtype, render=True, save_dir=None, episode_i
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
         env.render()
-        pygame.image.save(env.screen, os.path.join(save_dir, f"layout_ep{episode_idx:03d}.png"))
-        original_layout = env.map_layout.copy()
+        final_surface = env.screen.copy()
+        original_map = env.map_layout.copy()
         original_colors = [row[:] for row in env.map_colors]
-        env.map_layout = first_obs["map"].copy()
-        env.heatmap = first_obs["heatmap"].copy()
+        original_heatmap = env.heatmap.copy()
+
+        env.map_layout = first_obs['map'].copy()
+        env.heatmap = first_obs['heatmap'].copy()
         env._update_colors()
         env.render()
-        pygame.image.save(env.screen, os.path.join(save_dir, f"initial_layout_ep{episode_idx:03d}.png"))
-        env.map_layout = original_layout
-        env.map_colors = original_colors
+        initial_surface = env.screen.copy()
+
         heatmap_surface = pygame.Surface(env.screen.get_size())
-        heatmap_scaled = (last_obs["heatmap"] / max(1.0, env.max_changes)).clip(0.0, 1.0)
+        heatmap_scaled = (last_obs['heatmap'] / max(1.0, env.max_changes)).clip(0.0, 1.0)
         heatmap_pixels = (heatmap_scaled * 255).astype(np.uint8)
         cell_size = 50
         for y in range(env.grid_size):
@@ -65,7 +66,18 @@ def run_episode(env, agent, device, dtype, render=True, save_dir=None, episode_i
                 color = (value, value, value)
                 rect = pygame.Rect(x * cell_size, y * cell_size, cell_size, cell_size)
                 pygame.draw.rect(heatmap_surface, color, rect)
-        pygame.image.save(heatmap_surface, os.path.join(save_dir, f"heatmap_ep{episode_idx:03d}.png"))
+
+        combined_width = initial_surface.get_width() * 3
+        combined_height = initial_surface.get_height()
+        combined_surface = pygame.Surface((combined_width, combined_height))
+        combined_surface.blit(initial_surface, (0, 0))
+        combined_surface.blit(heatmap_surface, (initial_surface.get_width(), 0))
+        combined_surface.blit(final_surface, (initial_surface.get_width() * 2, 0))
+        pygame.image.save(combined_surface, os.path.join(save_dir, f"episode_{episode_idx:03d}.png"))
+
+        env.map_layout = original_map
+        env.map_colors = original_colors
+        env.heatmap = original_heatmap
     return total_reward, last_obs, False
 
 
@@ -106,9 +118,11 @@ def main():
             episode_idx=episode,
         )
         stats = env._get_stats(last_obs["map"])
+        frame_info = env.iterations
         print(
             f"Episode {episode + 1}: reward={total_reward:.2f}, "
-            f"regions={stats['regions']}, path-length={stats['path-length']}"
+            f"regions={stats['regions']}, path-length={stats['path-length']}, "
+            f"frame={frame_info}"
         )
         if quit_requested:
             break
