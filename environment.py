@@ -11,24 +11,24 @@ class Environment:
     method to initialize attributes
 
     Attributes:
-        state_size: An integer represting the size of the state space (n*n)
-        action_size: An integer represting the size of the action space (n*n)
+        grid_size: An integer representing the width/height of the square grid
         value_size: An integer represting the size of the value space (2)
-        num_initial_walkable_tiles: An integer of the number of initial walkable tiles
         target_path: An integer ofthe size of the longest shortest path
         *_color: A tuple of RGB colors used for the rendering
         rewards: A dictionary of the reward types
         scrx/ scry: PyGame screen sizes
         screen: The PyGame Screen
     """
-    def __init__(self, state_size, action_size, value_size, scrx, scry, screen, initial_walkable_tiles, target_path):
+    def __init__(self, grid_size, value_size, scrx, scry, screen, target_path):
         """The init method for the Environment class"""
-        self.state_size = state_size
-        self.action_size = action_size
+        self.grid_size = grid_size
         self.value_size = value_size
-        self.num_initial_walkable_tiles = initial_walkable_tiles
+        self.empty_value = 0
+        self.solid_value = 1
+        self.prob_empty = 0.5
+        self.prob_solid = 0.5
         self.target_path = target_path
-        self.walkable_tile_color = (51,51,51) 
+        self.walkable_tile_color = (51,51,51)
         self.brick_tile_color = (220, 85, 57)
         self.start_tile_color = (18, 217, 0)
         self.finish_tile_color = (247, 13, 26)
@@ -40,11 +40,17 @@ class Environment:
         self.scrx = scrx
         self.scry = scry
         self.screen = screen
+        self.change_percentage = 0.2
+        total_tiles = max(1, self.grid_size * self.grid_size)
+        self.max_changes = max(1, int(self.change_percentage * total_tiles))
+        self.max_iterations = self.max_changes * total_tiles
+        self.changes = 0
+        self.iterations = 0
+        self.budget_exhausted = False
+        self.heatmap = np.zeros((self.grid_size, self.grid_size), dtype=np.float32)
 
-
-    
     def render(self):
-        """This method is solely responsible for the rendering of the graphics using PyGame"""
+        """This method is only responsible for the rendering of the graphics using PyGame"""
         for i in range(0, self.scrx, 50):
             for j in range(0, self.scry, 50):
                 pygame.draw.rect(self.screen,(255,255,255),(j,i,j+50,i+50),0)
@@ -53,54 +59,103 @@ class Environment:
     def reset(self):
         """The reset method is used to reset some the method attributes during training for each new episode"""
         # Initializing the map layout, colors and walkable tiles
-        self.initial_map_layout = np.ones((self.state_size, self.state_size))
-        self.initial_map_colors = [[self.brick_tile_color for i in range(self.state_size) ] for j in range(self.state_size)]
-        self.all_tiles = {(i, j) for i in range(self.state_size) for j in range(self.state_size)}
-        self.initial_walkable_tiles = random.sample(list(self.all_tiles), self.num_initial_walkable_tiles)
-        for i in range(self.num_initial_walkable_tiles):
-            x = self.initial_walkable_tiles[i][0]
-            y = self.initial_walkable_tiles[i][1]
-            self.initial_map_layout[x][y] = 0
-            self.initial_map_colors[x][y] = self.walkable_tile_color
-
-        # Initializing moving variables
-        self.map_layout = self.initial_map_layout
-        self.walkable_tiles = self.initial_walkable_tiles
-        self.map_colors = self.initial_map_colors
-        self.initial_path_length = calc_longest_path(self.initial_map_layout, self.walkable_tiles)
-        return self.map_layout
+        self.initial_map_layout, self.initial_map_colors = self._generate_initial_layout()
+        self.map_layout = self.initial_map_layout.copy()
+        self.map_colors = [row[:] for row in self.initial_map_colors]
+        self.walkable_tiles = self._get_walkable_tiles(self.map_layout)
+        self.start_stats = self._get_stats(self.map_layout)
+        self.initial_path_length = self.start_stats["path-length"]
+        self.changes = 0
+        self.iterations = 0
+        self.budget_exhausted = False
+        self.heatmap = np.zeros((self.grid_size, self.grid_size), dtype=np.float32)
+        return self._get_observation()
     
     def step(self, action, value):   
         """
         The step method is used to transition from a state to another for a timestep all the while calculating 
         the reward and the done status
         """      
-        old_map_layout = self.map_layout
-        old_path_length = calc_longest_path(old_map_layout, self.walkable_tiles)
-        old_num_regions = calc_num_regions(old_map_layout, self.walkable_tiles)
-        
-        self.map_layout[action[0]][action[1]] = value
-        self.walkable_tiles = [(i, j) for i in range(self.state_size)
-                                  for j in range(self.state_size)
-                                  if self.map_layout[i][j] == 0]
+        self.iterations += 1
+        old_map_layout = self.map_layout.copy()
+        old_stats = self._get_stats(old_map_layout)
+
+        x, y = action
+        previous_value = self.map_layout[y][x]
+        self.map_layout[y][x] = value
+        if previous_value != value:
+            self.changes += 1
+        self.walkable_tiles = self._get_walkable_tiles(self.map_layout)
+        self._update_colors()
 
         new_map_layout = self.map_layout
-        new_path_length = calc_longest_path(new_map_layout, self.walkable_tiles)
-        new_num_regions = calc_num_regions(new_map_layout, self.walkable_tiles)
-        for i in range(len(new_map_layout)):
-            for j in range(len(new_map_layout)):
-                if new_map_layout[i][j] == 0:
-                    self.map_colors[i][j] = self.walkable_tile_color
+        new_stats = self._get_stats(new_map_layout)
+
+        reward = self._compute_reward(new_stats, old_stats)
+        budget_exhausted = self.changes >= self.max_changes or self.iterations >= self.max_iterations
+        self.budget_exhausted = budget_exhausted
+        done = int(self._is_episode_over(new_stats) or budget_exhausted)
+
+        if previous_value != value:
+            self.heatmap[y][x] = min(self.heatmap[y][x] + 1.0, self.max_changes)
+
+        observation = self._get_observation()
+
+        return observation, reward, done
+
+    def _generate_initial_layout(self):
+        layout = np.full((self.grid_size, self.grid_size), self.solid_value, dtype=np.int8)
+        colors = [[self.brick_tile_color for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        for y in range(self.grid_size):
+            for x in range(self.grid_size):
+                if self._is_border(x, y):
+                    continue
+                tile_value = self.empty_value if random.random() < self.prob_empty else self.solid_value
+                layout[y][x] = tile_value
+                colors[y][x] = self.walkable_tile_color if tile_value == self.empty_value else self.brick_tile_color
+        return layout, colors
+
+    def _is_border(self, x, y):
+        return x == 0 or y == 0 or x == self.grid_size - 1 or y == self.grid_size - 1
+
+    def _get_walkable_tiles(self, layout=None):
+        target_layout = self.map_layout if layout is None else layout
+        return [
+            (x, y)
+            for y in range(self.grid_size)
+            for x in range(self.grid_size)
+            if target_layout[y][x] == self.empty_value
+        ]
+
+    def _get_stats(self, layout=None):
+        target_layout = self.map_layout if layout is None else layout
+        walkable = self._get_walkable_tiles(target_layout)
+        return {
+            "regions": calc_num_regions(target_layout, walkable),
+            "path-length": calc_longest_path(target_layout, walkable),
+        }
+
+    def _compute_reward(self, new_stats, old_stats):
+        path_length_range_reward = get_range_reward(new_stats["path-length"], old_stats["path-length"], np.inf, np.inf)
+        num_regions_range_reward = get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1)
+        return num_regions_range_reward * self.rewards["regions"] + path_length_range_reward * self.rewards["path-length"]
+
+    def _is_episode_over(self, new_stats):
+        if self.start_stats is None:
+            return False
+        path_improvement = new_stats["path-length"] - self.start_stats["path-length"]
+        return new_stats["regions"] == 1 and path_improvement >= self.target_path
+
+    def _update_colors(self):
+        for y in range(self.grid_size):
+            for x in range(self.grid_size):
+                if self.map_layout[y][x] == self.empty_value:
+                    self.map_colors[y][x] = self.walkable_tile_color
                 else:
-                    self.map_colors[i][j] = self.brick_tile_color
+                    self.map_colors[y][x] = self.brick_tile_color
 
-        done = int(new_num_regions == 1 and new_path_length - self.initial_path_length >= self.target_path)
-        
-        path_length_range_reward = get_range_reward(new_path_length, old_path_length, np.inf, np.inf)
-        num_regions_range_reward = get_range_reward(new_num_regions, old_num_regions, 1, 1)
-
-        reward = num_regions_range_reward * self.rewards["regions"] + path_length_range_reward * self.rewards["path-length"]
-        if done:
-            reward = -10
-        
-        return new_map_layout, reward, done
+    def _get_observation(self):
+        return {
+            "map": self.map_layout.copy(),
+            "heatmap": self.heatmap.copy(),
+        }

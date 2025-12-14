@@ -29,7 +29,7 @@ def observation_to_tensor(observation):
     return torch.tensor(stacked, dtype=dtype, device=device).unsqueeze(0)
 
 # The size of the map
-n = 7
+n = 14
 
 # The size of the PyGame screen and screen itself
 scrx = n*50
