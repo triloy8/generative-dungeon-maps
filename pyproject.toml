@@ -1,7 +1,7 @@
 [project]
-name = "dqn"
+name = "generative-dungeon-amaps"
 version = "0.1.0"
-description = "A DQN project."
+description = "Generating dungeon maps using DQN."
 readme = "README.md"
 requires-python = ">=3.11"
 
