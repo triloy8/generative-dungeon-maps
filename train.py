@@ -147,7 +147,7 @@ def train(args):
         if (episode + 1) % args.save_every == 0:
             checkpoint_path = os.path.join(
                 args.checkpoint_dir,
-                f'weights_{episode + 1:04d}.pt',
+                f'weights_{episode + 1:04d}.safetensors',
             )
             agent.save(checkpoint_path)
             if wandb_run is not None:

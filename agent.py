@@ -3,6 +3,7 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from safetensors.torch import load_file, save_file
 from memory import Transition, ReplayMemory
 
 
@@ -200,8 +201,9 @@ class DQNAgent:
     
     def save(self, name):
         """Saving the model weights"""
-        torch.save(self.DQNmodel.state_dict(), name)
+        save_file(self.DQNmodel.state_dict(), name)
     
     def load(self, name):
         """Loading the model weights for inference"""
-        self.DQNmodel.load_state_dict(torch.load(name))
+        state_dict = load_file(name)
+        self.DQNmodel.load_state_dict(state_dict)
