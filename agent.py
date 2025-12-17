@@ -76,20 +76,36 @@ class DQNAgent:
         device: String that tells torch to use either CPU or GPU 
 
     """
-    def __init__(self, grid_size, value_size, dtype, device):
+    def __init__(
+        self,
+        grid_size,
+        value_size,
+        dtype,
+        device,
+        memory_capacity=10000,
+        gamma=0.95,
+        epsilon_start=1.0,
+        epsilon_decay=0.999,
+        epsilon_min=0.01,
+        learning_rate=0.00005,
+        clip_min=-10.0,
+        clip_max=10.0,
+        target_update_interval=2000,
+    ):
         """The init method for the DQNAgent class"""
         self.device = device
         self.dtype = dtype
         self.grid_size = grid_size
         self.value_size = value_size
-        self.memory = ReplayMemory(10000)
-        self.gamma = 0.95 
-        self.epsilon = 1.0 
-        self.epsilon_decay = 0.999
-        self.epsilon_min = 0.01
-        self.learning_rate = 0.00005
-        self.clip_min = -10.0
-        self.clip_max = 10.0
+        self.memory = ReplayMemory(memory_capacity)
+        self.gamma = gamma
+        self.epsilon = epsilon_start
+        self.epsilon_start = epsilon_start
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_min = epsilon_min
+        self.learning_rate = learning_rate
+        self.clip_min = clip_min
+        self.clip_max = clip_max
         self.DQNmodel = DQN(grid_size, value_size).to(device=self.device, dtype=self.dtype)
         self.criterion = nn.SmoothL1Loss()
         self.optimizer = optim.AdamW(self.DQNmodel.parameters(), lr=self.learning_rate, amsgrad=True)
@@ -97,7 +113,7 @@ class DQNAgent:
         self.target_model.load_state_dict(self.DQNmodel.state_dict())
         for param in self.target_model.parameters():
             param.requires_grad = False
-        self.target_update_interval = 2000
+        self.target_update_interval = target_update_interval
         self.train_steps = 0
     
     def remember(self, state, action, value, reward, next_state, done):

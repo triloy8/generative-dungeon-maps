@@ -89,6 +89,15 @@ def main():
     parser.add_argument("--target-path", type=int, default=1, help="Target path improvement threshold.")
     parser.add_argument("--render", action="store_true", help="Render the environment with pygame.")
     parser.add_argument("--save-dir", default=None, help="Directory to save final layout/heatmap PNGs.")
+    parser.add_argument("--memory-capacity", type=int, default=10000, help="Replay memory capacity.")
+    parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor.")
+    parser.add_argument("--epsilon-start", type=float, default=1.0, help="Initial epsilon for exploration.")
+    parser.add_argument("--epsilon-decay", type=float, default=0.999, help="Multiplicative epsilon decay per step.")
+    parser.add_argument("--epsilon-min", type=float, default=0.01, help="Minimum epsilon value.")
+    parser.add_argument("--learning-rate", type=float, default=5e-5, help="Optimizer learning rate.")
+    parser.add_argument("--clip-min", type=float, default=-10.0, help="TD target lower clamp.")
+    parser.add_argument("--clip-max", type=float, default=10.0, help="TD target upper clamp.")
+    parser.add_argument("--target-update-interval", type=int, default=2000, help="Steps between target network syncs.")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -103,7 +112,21 @@ def main():
         screen = pygame.Surface((scrx, scry))
 
     env = Environment(args.map_size, 2, scrx, scry, screen, args.target_path)
-    agent = DQNAgent(args.map_size, 2, dtype, device)
+    agent = DQNAgent(
+        args.map_size,
+        2,
+        dtype,
+        device,
+        memory_capacity=args.memory_capacity,
+        gamma=args.gamma,
+        epsilon_start=args.epsilon_start,
+        epsilon_decay=args.epsilon_decay,
+        epsilon_min=args.epsilon_min,
+        learning_rate=args.learning_rate,
+        clip_min=args.clip_min,
+        clip_max=args.clip_max,
+        target_update_interval=args.target_update_interval,
+    )
     agent.load(args.checkpoint)
     agent.epsilon = 0.0
 

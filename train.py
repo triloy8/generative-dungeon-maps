@@ -41,6 +41,15 @@ def parse_args():
     parser.add_argument('--render', action='store_true', help='Render pygame window during training.')
     parser.add_argument('--enable-wandb', action='store_true', help='Log metrics to Weights & Biases.')
     parser.add_argument('--project', default='dqn-debug', help='W&B project name.')
+    parser.add_argument('--memory-capacity', type=int, default=10000, help='Replay memory capacity.')
+    parser.add_argument('--gamma', type=float, default=0.95, help='Discount factor.')
+    parser.add_argument('--epsilon-start', type=float, default=1.0, help='Initial epsilon for exploration.')
+    parser.add_argument('--epsilon-decay', type=float, default=0.999, help='Multiplicative epsilon decay per step.')
+    parser.add_argument('--epsilon-min', type=float, default=0.01, help='Minimum epsilon value.')
+    parser.add_argument('--learning-rate', type=float, default=5e-5, help='Optimizer learning rate.')
+    parser.add_argument('--clip-min', type=float, default=-10.0, help='TD target lower clamp.')
+    parser.add_argument('--clip-max', type=float, default=10.0, help='TD target upper clamp.')
+    parser.add_argument('--target-update-interval', type=int, default=2000, help='Steps between target network syncs.')
     return parser.parse_args()
 
 
@@ -58,7 +67,21 @@ def train(args):
 
     env = Environment(args.map_size, 2, scrx, scry, screen, args.target_path)
     env.reset()
-    agent = DQNAgent(args.map_size, 2, dtype, device)
+    agent = DQNAgent(
+        args.map_size,
+        2,
+        dtype,
+        device,
+        memory_capacity=args.memory_capacity,
+        gamma=args.gamma,
+        epsilon_start=args.epsilon_start,
+        epsilon_decay=args.epsilon_decay,
+        epsilon_min=args.epsilon_min,
+        learning_rate=args.learning_rate,
+        clip_min=args.clip_min,
+        clip_max=args.clip_max,
+        target_update_interval=args.target_update_interval,
+    )
 
     wandb_run = None
     if args.enable_wandb and wandb is not None:
@@ -69,8 +92,15 @@ def train(args):
                 'batch_size': args.batch_size,
                 'episodes': args.episodes,
                 'target_path': args.target_path,
-                'epsilon_decay': agent.epsilon_decay,
-                'learning_rate': agent.learning_rate,
+                'epsilon_start': args.epsilon_start,
+                'epsilon_decay': args.epsilon_decay,
+                'epsilon_min': args.epsilon_min,
+                'gamma': args.gamma,
+                'learning_rate': args.learning_rate,
+                'memory_capacity': args.memory_capacity,
+                'clip_min': args.clip_min,
+                'clip_max': args.clip_max,
+                'target_update_interval': args.target_update_interval,
             },
         )
 
