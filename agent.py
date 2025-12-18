@@ -133,7 +133,7 @@ class DQNAgent:
             rand_y = random.randrange(self.grid_size)
             return [rand_x, rand_y], random.randrange(self.value_size)
         else:
-            grid = action[0, 0]  # drop the channel axis -> 14x14
+            grid = action[0, 0]  # drop the channel axis -> grid_size x grid_size
             max_coords = torch.nonzero(grid == grid.max(), as_tuple=False)
             row, col = max_coords[0].tolist()
             action_item = [col, row]
