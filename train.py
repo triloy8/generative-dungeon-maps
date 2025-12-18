@@ -41,6 +41,8 @@ def parse_args():
     parser.add_argument('--render', action='store_true', help='Render pygame window during training.')
     parser.add_argument('--enable-wandb', action='store_true', help='Log metrics to Weights & Biases.')
     parser.add_argument('--project', default='dqn-debug', help='W&B project name.')
+    parser.add_argument('--prob-empty', type=float, default=0.5, help='Initial probability for empty tiles.')
+    parser.add_argument('--change-percentage', type=float, default=0.2, help='Fraction of tiles allowed to change.')
     parser.add_argument('--memory-capacity', type=int, default=10000, help='Replay memory capacity.')
     parser.add_argument('--gamma', type=float, default=0.95, help='Discount factor.')
     parser.add_argument('--epsilon-start', type=float, default=1.0, help='Initial epsilon for exploration.')
@@ -65,7 +67,16 @@ def train(args):
 
     os.makedirs(args.checkpoint_dir, exist_ok=True)
 
-    env = Environment(args.map_size, 2, scrx, scry, screen, args.target_path)
+    env = Environment(
+        args.map_size,
+        2,
+        scrx,
+        scry,
+        screen,
+        args.target_path,
+        prob_empty=args.prob_empty,
+        change_percentage=args.change_percentage,
+    )
     env.reset()
     agent = DQNAgent(
         args.map_size,
@@ -101,6 +112,8 @@ def train(args):
                 'clip_min': args.clip_min,
                 'clip_max': args.clip_max,
                 'target_update_interval': args.target_update_interval,
+                'prob_empty': args.prob_empty,
+                'change_percentage': args.change_percentage,
             },
         )
 

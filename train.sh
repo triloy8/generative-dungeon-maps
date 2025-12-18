@@ -19,4 +19,6 @@ uv run python3 train.py \
   --learning-rate 0.00005 \
   --clip-min -10.0 \
   --clip-max 10.0 \
-  --target-update-interval 2000
+  --target-update-interval 2000 \
+  --prob-empty 0.5 \
+  --change-percentage 0.2

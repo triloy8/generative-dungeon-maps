@@ -19,14 +19,14 @@ class Environment:
         scrx/ scry: PyGame screen sizes
         screen: The PyGame Screen
     """
-    def __init__(self, grid_size, value_size, scrx, scry, screen, target_path):
+    def __init__(self, grid_size, value_size, scrx, scry, screen, target_path, prob_empty=0.5, change_percentage=0.2):
         """The init method for the Environment class"""
         self.grid_size = grid_size
         self.value_size = value_size
         self.empty_value = 0
         self.solid_value = 1
-        self.prob_empty = 0.5
-        self.prob_solid = 0.5
+        self.prob_empty = min(1.0, max(0.0, prob_empty))
+        self.prob_solid = 1 - self.prob_empty
         self.target_path = target_path
         self.walkable_tile_color = (51,51,51)
         self.brick_tile_color = (220, 85, 57)
@@ -40,7 +40,7 @@ class Environment:
         self.scrx = scrx
         self.scry = scry
         self.screen = screen
-        self.change_percentage = 0.2
+        self.change_percentage = min(1.0, max(0.0, change_percentage))
         total_tiles = max(1, self.grid_size * self.grid_size)
         self.max_changes = max(1, int(self.change_percentage * total_tiles))
         self.max_iterations = self.max_changes * total_tiles

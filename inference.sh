@@ -3,9 +3,9 @@ set -euo pipefail
 
 uv run python3 inference.py \
   --checkpoint model_output/dqn/weights_1000.safetensors \
-  --map-size 14 \
+  --map-size 7 \
   --episodes 3 \
-  --target-path 7 \
+  --target-path 5 \
   --render \
   --save-dir inference_output \
   --memory-capacity 10000 \
@@ -16,4 +16,6 @@ uv run python3 inference.py \
   --learning-rate 0.00005 \
   --clip-min -10.0 \
   --clip-max 10.0 \
-  --target-update-interval 2000
+  --target-update-interval 2000 \
+  --prob-empty 0.5 \
+  --change-percentage 0.2
