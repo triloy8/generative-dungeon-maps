@@ -8,7 +8,7 @@ uv run python3 train.py \
   --target-path 5 \
   --checkpoint-dir model_output/dqn \
   --save-every 50 \
-  # --render \
+  --render \
   --enable-wandb \
   --project dqn-debug \
   --memory-capacity 10000 \

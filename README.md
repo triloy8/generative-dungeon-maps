@@ -1,3 +1,21 @@
+# Generative Dungeon Maps
+
+## What Is This?
+
+This repository implements the binary problem with the wide representation from
+<a href="https://arxiv.org/abs/2001.09212"><i>PCGRL: Procedural Content Generation via Reinforcement Learning</i></a>.
+The goal is to generate top-down dungeon layouts composed of solid and walkable tiles, such that the map forms a single connected region and the longest path between any two walkable tiles exceeds a target threshold. The agent edits one tile at a time anywhere on the grid, receiving reward for merging regions and lengthening paths until it meets the design criteria or runs out of edits.
+
+## Screenshots
+
+## Usage
+
+1. **Training**  
+   - Run `./train.sh` (or `uv run python train.py ...`) to launch training with the desired hyperparameters. Use `--render` if you want to see the pygame window, `--enable-wandb` to log metrics, and adjust CLI flags for map size, target path, environment probabilities, and agent hyperparameters.
+2. **Inference**  
+   - Run `./inference.sh` (or `uv run python inference.py ...`) pointing to a saved checkpoint (`.safetensors`). Enable `--render` to view the agent editing the grid, and set `--save-dir` to dump combined screenshots (initial layout / heatmap / final layout) per episode.
+3. **Scripts / CLI**  
+   - Both scripts expose all configurable knobs (grid size, target path, `prob_empty`, `change_percentage`, device/dtype selection, etc.) so you can quickly experiment without editing the code. Use `--help` on either Python entry point to see the complete list of options. All helper scripts assume the [uv](https://docs.astral.sh/uv/getting-started/installation/) project/package manager is installed and available.
 
 ## Agent
 

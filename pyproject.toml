@@ -1,5 +1,5 @@
 [project]
-name = "generative-dungeon-amaps"
+name = "generative-dungeon-maps"
 version = "0.1.0"
 description = "Generating dungeon maps using DQN."
 readme = "README.md"
