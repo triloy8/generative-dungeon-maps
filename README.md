@@ -196,8 +196,5 @@ for episode in range(num_episodes):
    - Each step uses the greedy policy to select a coordinate/tile, applies it via `env.step`, optionally renders the frame, and stops early if the environment returns `done`.
 
 3. **Saving outputs**
-   - After each episode it saves three PNGs (if `--save-dir` is provided):
-     - `initial_layout_epXXX.png` by temporarily swapping the environment’s map with the first state and reusing `env.render`.
-     - `layout_epXXX.png` which is the final rendered screen.
-     - `heatmap_epXXX.png`, a grayscale visualization of the edit counts.
-   - The wrapper also prints summary stats (reward, final region count, final path length) to the console and honors window close events to exit early.
+   - After each episode it writes a single PNG (if `--save-dir` is provided) that stitches the initial layout, the heatmap, and the final layout horizontally, making it easy to compare the before/after state and edit density.
+   - The wrapper also prints summary stats (reward, final region count, final path length, frame index) to the console and honors window close events to exit early.
