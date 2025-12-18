@@ -2,13 +2,13 @@
 set -euo pipefail
 
 uv run python3 train.py \
-  --map-size  7 \
+  --map-size  10 \
   --episodes 1000 \
   --batch-size 16 \
-  --target-path 4 \
+  --target-path 5 \
   --checkpoint-dir model_output/dqn \
   --save-every 50 \
-  --render \
+  # --render \
   --enable-wandb \
   --project dqn-debug \
   --memory-capacity 10000 \
@@ -21,4 +21,6 @@ uv run python3 train.py \
   --clip-max 10.0 \
   --target-update-interval 2000 \
   --prob-empty 0.5 \
-  --change-percentage 0.2
+  --change-percentage 0.2 \
+  --device cuda \
+  --dtype float32

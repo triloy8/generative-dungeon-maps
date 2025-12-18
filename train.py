@@ -15,8 +15,26 @@ except ImportError:
     wandb = None
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-dtype = torch.float32
+device = None
+dtype = None
+
+
+def resolve_device(arg):
+    if arg.lower() == 'auto':
+        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    return torch.device(arg)
+
+
+def resolve_dtype(arg):
+    mapping = {
+        'float32': torch.float32,
+        'float16': torch.float16,
+        'bfloat16': torch.bfloat16,
+        'float64': torch.float64,
+    }
+    if arg not in mapping:
+        raise ValueError(f"Unsupported dtype '{arg}'. Choose from {list(mapping.keys())}.")
+    return mapping[arg]
 
 
 def observation_to_tensor(observation):
@@ -52,10 +70,15 @@ def parse_args():
     parser.add_argument('--clip-min', type=float, default=-10.0, help='TD target lower clamp.')
     parser.add_argument('--clip-max', type=float, default=10.0, help='TD target upper clamp.')
     parser.add_argument('--target-update-interval', type=int, default=2000, help='Steps between target network syncs.')
+    parser.add_argument('--device', default='auto', help="Torch device to use ('auto', 'cpu', 'cuda', etc.).")
+    parser.add_argument('--dtype', default='float32', help="Torch dtype (float32, float16, bfloat16, float64).")
     return parser.parse_args()
 
 
 def train(args):
+    global device, dtype
+    device = resolve_device(args.device)
+    dtype = resolve_dtype(args.dtype)
     pygame.init()
     tile_size = 50
     scrx = args.map_size * tile_size

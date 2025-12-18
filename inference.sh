@@ -9,4 +9,6 @@ uv run python3 inference.py \
   --render \
   --save-dir inference_output \
   --prob-empty 0.5 \
-  --change-percentage 0.2
+  --change-percentage 0.2 \
+  --device cuda \
+  --dtype float32

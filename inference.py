@@ -10,6 +10,24 @@ from agent import DQNAgent
 from environment import Environment
 
 
+def resolve_device(arg):
+    if arg.lower() == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device(arg)
+
+
+def resolve_dtype(arg):
+    mapping = {
+        "float32": torch.float32,
+        "float16": torch.float16,
+        "bfloat16": torch.bfloat16,
+        "float64": torch.float64,
+    }
+    if arg not in mapping:
+        raise ValueError(f"Unsupported dtype '{arg}'. Choose from {list(mapping.keys())}.")
+    return mapping[arg]
+
+
 def observation_to_tensor(observation, device, dtype):
     stacked = np.stack(
         [
@@ -91,10 +109,12 @@ def main():
     parser.add_argument("--save-dir", default=None, help="Directory to save final layout/heatmap PNGs.")
     parser.add_argument("--prob-empty", type=float, default=0.5, help="Initial probability for empty tiles.")
     parser.add_argument("--change-percentage", type=float, default=0.2, help="Fraction of tiles allowed to change.")
+    parser.add_argument("--device", default="auto", help="Torch device to use ('auto', 'cpu', 'cuda', etc.).")
+    parser.add_argument("--dtype", default="float32", help="Torch dtype (float32, float16, bfloat16, float64).")
     args = parser.parse_args()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dtype = torch.float32
+    device = resolve_device(args.device)
+    dtype = resolve_dtype(args.dtype)
 
     pygame.init()
     scrx = args.map_size * 50
