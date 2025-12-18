@@ -139,7 +139,7 @@ wheels = [
 ]
 
 [[package]]
-name = "generative-dungeon-amaps"
+name = "generative-dungeon-maps"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

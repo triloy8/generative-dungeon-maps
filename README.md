@@ -6,7 +6,21 @@ This repository implements the binary problem with the wide representation from
 <a href="https://arxiv.org/abs/2001.09212"><i>PCGRL: Procedural Content Generation via Reinforcement Learning</i></a>.
 The goal is to generate top-down dungeon layouts composed of solid and walkable tiles, such that the map forms a single connected region and the longest path between any two walkable tiles exceeds a target threshold. The agent edits one tile at a time anywhere on the grid, receiving reward for merging regions and lengthening paths until it meets the design criteria or runs out of edits.
 
-## Screenshots
+## Generated Dungeons
+
+The samples below come from a policy trained on 10×10 grids with a target path
+of 5, then evaluated on 14×14 grids with a target path of 7. This was a short
+training run, so inference occasionally stalled , I simply reran an the inference
+when that happend.
+
+![Dungeon layout 000](screenshots/dungeon_000.png)
+*Episode 1 – reward 147, regions 1, path length 35, frame 22*
+
+![Dungeon layout 001](screenshots/dungeon_001.png)
+*Episode 2 – reward 59, regions 1, path length 42, frame 7*
+
+![Dungeon layout 002](screenshots/dungeon_002.png)
+*Episode 3 – reward 124, regions 1, path length 31, frame 19*
 
 ## Usage
 
