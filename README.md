@@ -10,7 +10,7 @@ The goal is to generate top-down dungeon layouts composed of solid and walkable 
 
 The samples below come from a policy trained on 10×10 grids with a target path
 of 5, then evaluated on 14×14 grids with a target path of 7. This was a short
-training run, so inference occasionally stalled , I simply reran an the inference
+training run, so inference occasionally stalled, I simply reran the inference script
 when that happend.
 
 ![Dungeon layout 000](screenshots/dungeon_000.png)
