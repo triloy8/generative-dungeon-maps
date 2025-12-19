@@ -11,7 +11,7 @@ The goal is to generate top-down dungeon layouts composed of solid and walkable 
 The samples below come from a policy trained on 10×10 grids with a target path
 of 5, then evaluated on 14×14 grids with a target path of 7. This was a short
 training run, so inference occasionally stalled, I simply reran the inference script
-when that happend.
+when that happened.
 
 ![Dungeon layout 000](screenshots/dungeon_000.png)
 *Episode 1 – reward 147, regions 1, path length 35, frame 22*
@@ -25,9 +25,9 @@ when that happend.
 ## Usage
 
 1. **Training**  
-   - Run `./train.sh` (or `uv run python train.py ...`) to launch training with the desired hyperparameters. Use `--render` if you want to see the pygame window, `--enable-wandb` to log metrics, and adjust CLI flags for map size, target path, environment probabilities, and agent hyperparameters.
+   - Run `./scripts/train.sh` (or `uv run python train.py ...`) to launch training with the desired hyperparameters. Use `--render` if you want to see the pygame window, `--enable-wandb` to log metrics, and adjust CLI flags for map size, target path, environment probabilities, and agent hyperparameters.
 2. **Inference**  
-   - Run `./inference.sh` (or `uv run python inference.py ...`) pointing to a saved checkpoint (`.safetensors`). Enable `--render` to view the agent editing the grid, and set `--save-dir` to dump combined screenshots (initial layout / heatmap / final layout) per episode.
+   - Run `./scripts/inference.sh` (or `uv run python inference.py ...`) pointing to a saved checkpoint (`.safetensors`). Enable `--render` to view the agent editing the grid, and set `--save-dir` to dump combined screenshots (initial layout / heatmap / final layout) per episode.
 3. **Scripts / CLI**  
    - Both scripts expose all configurable knobs (grid size, target path, `prob_empty`, `change_percentage`, device/dtype selection, etc.) so you can quickly experiment without editing the code. Use `--help` on either Python entry point to see the complete list of options. All helper scripts assume the [uv](https://docs.astral.sh/uv/getting-started/installation/) project/package manager is installed and available.
 
