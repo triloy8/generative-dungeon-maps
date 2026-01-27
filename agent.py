@@ -7,7 +7,7 @@ from safetensors.torch import load_file, save_file
 from memory import Transition, ReplayMemory
 
 
-class DQN(nn.Module):
+class DQNModel(nn.Module):
     """This class implements the DQN model.
 
     As is it inherited from torch.nn.Module, it implements a forward method for 
@@ -19,7 +19,7 @@ class DQN(nn.Module):
     """
     def __init__(self, value_size):
         """The init method for the a torch.nn.Module class"""
-        super(DQN, self).__init__()
+        super(DQNModel, self).__init__()
         assert value_size == 2
 
         # feature extract
@@ -106,10 +106,10 @@ class DQNAgent:
         self.learning_rate = learning_rate
         self.clip_min = clip_min
         self.clip_max = clip_max
-        self.DQNmodel = DQN(value_size).to(device=self.device, dtype=self.dtype)
+        self.DQNmodel = DQNModel(value_size).to(device=self.device, dtype=self.dtype)
         self.criterion = nn.SmoothL1Loss()
         self.optimizer = optim.AdamW(self.DQNmodel.parameters(), lr=self.learning_rate, amsgrad=True)
-        self.target_model = DQN(value_size).to(device=self.device, dtype=self.dtype)
+        self.target_model = DQNModel(value_size).to(device=self.device, dtype=self.dtype)
         self.target_model.load_state_dict(self.DQNmodel.state_dict())
         for param in self.target_model.parameters():
             param.requires_grad = False

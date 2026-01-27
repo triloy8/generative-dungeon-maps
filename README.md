@@ -44,7 +44,7 @@ The project uses a DQN agent that predicts two things for each state:
 function act(state):
     if random() < epsilon:
         return random coordinate, random tile
-    (grid_logits, tile_logits) = DQN(state)
+    (grid_logits, tile_logits) = DQNModel(state)
     best_coord = argmax(grid_logits)
     best_tile = argmax(tile_logits)
     return best_coord, best_tile
@@ -53,9 +53,9 @@ function replay(batch):
     transitions = sample(memory, batch_size)
     states, actions, tiles, rewards, next_states, dones = unzip(transitions)
 
-    curr_grid, curr_tile = DQN(states)
-    next_grid_online, next_tile_online = DQN(next_states)
-    next_grid_target, next_tile_target = target_DQN(next_states)
+    curr_grid, curr_tile = DQNModel(states)
+    next_grid_online, next_tile_online = DQNModel(next_states)
+    next_grid_target, next_tile_target = target_DQNModel(next_states)
 
     best_coord_next = argmax(next_grid_online)
     best_tile_next = argmax(next_tile_online)
@@ -65,21 +65,21 @@ function replay(batch):
 
     loss = SmoothL1(curr_grid[actions], target_q) + SmoothL1(curr_tile, target_tile)
     optimize(loss)
-    periodically update target_DQN
+    periodically update target_DQNModel
 ```
 
 ### Natural Language Description
 1. **Exploration / Action selection**
    - With probability `epsilon`, the agent randomly picks a coordinate and tile type to explore.
-   - Otherwise, it runs the current DQN network once to get:
+   - Otherwise, it runs the current DQNModel network once to get:
      - A heatmap of Q-values for each grid coordinate.
      - A two-element Q-vector for “empty” vs. “solid”.
    - The greedy action is the coordinate with the highest value, paired with the tile class that has the highest score.
 
 2. **Training / Replay**
    - Experiences `(state, coord, tile, reward, next_state, done)` are pushed into replay memory.
-   - On each replay step we sample a batch and run the online DQN on both current and next states.
-   - We also run the target DQN on the next states to compute stable bootstrap targets, exactly like Double DQN.
+   - On each replay step we sample a batch and run the online DQNModel on both current and next states.
+   - We also run the target DQNModel on the next states to compute stable bootstrap targets, exactly like Double DQN.
    - The TD targets are computed separately for coordinates and tile values, clamped for stability.
    - We replace the predicted Q-values at the taken coordinate and tile with the TD targets and minimize the Smooth L1 loss.
    - After a fixed number of training steps, we sync the target network weights with the online network.
@@ -127,7 +127,7 @@ function step((x, y), tile):
 ## Training
 
 ### Overview
-Training drives the agent in the environment using ε-greedy exploration, stores transitions in replay memory, and periodically optimizes the DQN on random minibatches. Episodes are capped by the environment’s `max_iterations`, and checkpoints are saved every 50 episodes.
+Training drives the agent in the environment using ε-greedy exploration, stores transitions in replay memory, and periodically optimizes the DQNModel on random minibatches. Episodes are capped by the environment’s `max_iterations`, and checkpoints are saved every 50 episodes.
 
 ### Pseudocode
 ```
@@ -160,7 +160,7 @@ for episode in range(n_episodes):
    - Logs metrics (reward, epsilon, replay loss, etc.) to Weights & Biases if enabled.
 
 3. **Learning**
-   - Once the replay buffer has `batch_size` samples, calls `agent.replay(batch_size)` every step to update the DQN.
+   - Once the replay buffer has `batch_size` samples, calls `agent.replay(batch_size)` every step to update the DQNModel.
    - Every 50 episodes the model checkpoints weights to `model_output/dqn/`.
    - If the environment signals `done` (success or budget exhaustion) the episode ends early; otherwise it runs until the iteration budget is consumed.
 
