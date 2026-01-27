@@ -6,7 +6,7 @@ import pygame
 import torch
 from tqdm import tqdm
 
-from agent import DQNAgent
+from dqn_agent import DQNAgent
 from environment import Environment
 
 
