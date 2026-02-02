@@ -1,12 +1,16 @@
-# Generative Dungeon Maps
+<div align="center">
 
-## What Is This?
+# 🧭🗺️ Generative Dungeon Maps 🏰🧩
+
+</div>
+
+## 📜 What Is This?
 
 This repository implements the binary problem with the wide representation from
 <a href="https://arxiv.org/abs/2001.09212"><i>PCGRL: Procedural Content Generation via Reinforcement Learning</i></a>.
 The goal is to generate top-down dungeon layouts composed of solid and walkable tiles, such that the map forms a single connected region and the longest path between any two walkable tiles exceeds a target threshold. The agent edits one tile at a time anywhere on the grid, receiving reward for merging regions and lengthening paths until it meets the design criteria or runs out of edits.
 
-## Generated Dungeons
+## 🧱 Generated Dungeons
 
 The samples below come from a policy trained on 10×10 grids with a target path
 of 5, then evaluated on 14×14 grids with a target path of 7. This was a short
@@ -22,7 +26,7 @@ when that happened.
 ![Dungeon layout 002](screenshots/dungeon_002.png)
 *Episode 3 – reward 124, regions 1, path length 31, frame 19*
 
-## Usage
+## 🛠️ Usage
 
 1. **Training**  
    - Run `./scripts/train.sh` (or `uv run python train.py ...`) to launch training with the desired hyperparameters. Use `--render` if you want to see the pygame window, `--enable-wandb` to log metrics, and adjust CLI flags for map size, target path, environment probabilities, and agent hyperparameters.
@@ -31,15 +35,15 @@ when that happened.
 3. **Scripts / CLI**  
    - Both scripts expose all configurable knobs (grid size, target path, `prob_empty`, `change_percentage`, device/dtype selection, etc.) so you can quickly experiment without editing the code. Use `--help` on either Python entry point to see the complete list of options. All helper scripts assume the [uv](https://docs.astral.sh/uv/getting-started/installation/) project/package manager is installed and available.
 
-## Agent
+## 🤖 Agent
 
-### Overview
+### 👀 Overview
 The project uses a DQN agent that predicts two things for each state:
 
 - A grid of Q-values, one per coordinate, telling us where to edit.
 - A global “tile type” distribution that decides whether to place an empty tile (`0`) or a solid tile (`1`).
 
-### Pseudocode
+### 🧠 Pseudocode
 ```
 function act(state):
     if random() < epsilon:
@@ -68,7 +72,7 @@ function replay(batch):
     periodically update target_DQNModel
 ```
 
-### Natural Language Description
+### 📝 Natural Language Description
 1. **Exploration / Action selection**
    - With probability `epsilon`, the agent randomly picks a coordinate and tile type to explore.
    - Otherwise, it runs the current DQNModel network once to get:
@@ -84,12 +88,12 @@ function replay(batch):
    - We replace the predicted Q-values at the taken coordinate and tile with the TD targets and minimize the Smooth L1 loss.
    - After a fixed number of training steps, we sync the target network weights with the online network.
 
-## Environment
+## 🌍 Environment
 
-### Overview
+### 👀 Overview
 The environment maintains a `grid_size x grid_size` binary map (0 = walkable, 1 = solid) with a solid border, an edit heatmap, and cached stats (connected regions, longest shortest path). Episodes end either when the level becomes fully connected with enough path improvement or when an edit/iteration budget is exhausted.
 
-### Pseudocode
+### 🧠 Pseudocode
 ```
 function reset():
     map = random interior (50/50) + solid border
@@ -113,7 +117,7 @@ function step((x, y), tile):
     return {map, heatmap}, reward, done
 ```
 
-### Natural Language Description
+### 📝 Natural Language Description
 1. **Reset**
    - Builds a square map with a solid border and random interior tiles, tracks the initial stats, zeros the heatmap, and computes the episode budgets (`max_changes`, `max_iterations`).
    - Returns both the map and heatmap as the observation tensor consumed by the agent.
@@ -124,12 +128,12 @@ function step((x, y), tile):
    - Terminates the episode either on success (single connected region with enough path improvement) or when the edit/iteration budget runs out. There’s no extra terminal bonus, the reward is whatever the shaped signal emitted on that step.
 
 
-## Training
+## 🧪 Training
 
-### Overview
+### 👀 Overview
 Training drives the agent in the environment using ε-greedy exploration, stores transitions in replay memory, and periodically optimizes the DQNModel on random minibatches. Episodes are capped by the environment’s `max_iterations`, and checkpoints are saved every 50 episodes.
 
-### Pseudocode
+### 🧠 Pseudocode
 ```
 env = Environment(...)
 agent = DQNAgent(...)
@@ -149,7 +153,7 @@ for episode in range(n_episodes):
     if episode % 50 == 0: save_checkpoint()
 ```
 
-### Natural Language Description
+### 📝 Natural Language Description
 1. **Episode loop**
    - Resets the environment to get `{map, heatmap}`, converts it to a 2-channel tensor, and initializes `episode_reward`.
    - Steps up to `env.max_iterations`, rendering each frame if desired.
@@ -164,12 +168,12 @@ for episode in range(n_episodes):
    - Every 50 episodes the model checkpoints weights to `model_output/dqn/`.
    - If the environment signals `done` (success or budget exhaustion) the episode ends early; otherwise it runs until the iteration budget is consumed.
 
-## Inference
+## 🔮 Inference
 
-### Overview
+### 👀 Overview
 Inference loads a trained checkpoint, runs one or more evaluation episodes (optionally rendering them), and saves PNGs for the initial layout, final layout, and heatmap at the end of each episode. Progress bars (tqdm) show both episode count and step count.
 
-### Pseudocode
+### 🧠 Pseudocode
 ```
 agent.load(checkpoint)
 env = Environment(...)
@@ -186,7 +190,7 @@ for episode in range(num_episodes):
     save_final_layout_and_heatmap(obs)
 ```
 
-### Natural Language Description
+### 📝 Natural Language Description
 1. **Setup**
    - Parses CLI arguments (checkpoint path, map size, episode count, target path, rendering toggle, output directory) and initializes pygame plus the environment/agent.
    - Loads checkpoint weights into the agent and fixes `epsilon=0` to ensure greedy play.
