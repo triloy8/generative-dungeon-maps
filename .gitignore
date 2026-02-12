@@ -221,5 +221,6 @@ todo/
 *.txt
 model_output/
 inference_output/
+inference_output_ppo/
 wandb/
 gym-pcgrl/

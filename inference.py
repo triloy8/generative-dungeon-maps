@@ -40,7 +40,17 @@ def observation_to_tensor(observation, device, dtype):
     return torch.tensor(stacked, dtype=dtype, device=device).unsqueeze(0)
 
 
-def run_episode(env, agent, device, dtype, algo='dqn', render=True, save_dir=None, episode_idx=0):
+def run_episode(
+    env,
+    agent,
+    device,
+    dtype,
+    algo='dqn',
+    deterministic_ppo=False,
+    render=True,
+    save_dir=None,
+    episode_idx=0,
+):
     observation = env.reset()
     first_obs = observation
     state_tensor = observation_to_tensor(observation, device, dtype)
@@ -55,7 +65,7 @@ def run_episode(env, agent, device, dtype, algo='dqn', render=True, save_dir=Non
         if algo == 'dqn':
             action, value = agent.act(state_tensor)
         else:
-            action, value, *_ = agent.act(state_tensor, deterministic=True)
+            action, value, *_ = agent.act(state_tensor, deterministic=deterministic_ppo)
 
         next_observation, reward, done = env.step(action, value)
         total_reward += reward
@@ -113,6 +123,7 @@ def main():
     parser.add_argument("--episodes", type=int, default=1, help="Number of inference episodes to run.")
     parser.add_argument("--target-path", type=int, default=1, help="Target path improvement threshold.")
     parser.add_argument("--render", action="store_true", help="Render the environment with pygame.")
+    parser.add_argument("--deterministic", action="store_true", help="Use greedy action selection for PPO inference.")
     parser.add_argument("--save-dir", default=None, help="Directory to save final layout/heatmap PNGs.")
     parser.add_argument("--prob-empty", type=float, default=0.5, help="Initial probability for empty tiles.")
     parser.add_argument("--change-percentage", type=float, default=0.2, help="Fraction of tiles allowed to change.")
@@ -157,6 +168,7 @@ def main():
             device,
             dtype,
             algo=args.algo,
+            deterministic_ppo=args.deterministic,
             render=args.render,
             save_dir=args.save_dir,
             episode_idx=episode,
