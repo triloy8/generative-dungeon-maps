@@ -2,7 +2,8 @@
 set -euo pipefail
 
 uv run python3 inference.py \
-  --checkpoint model_output/dqn/weights_1000.safetensors \
+  --algo ppo \
+  --checkpoint model_output/ppo/weights_1000.safetensors \
   --map-size 14 \
   --episodes 3 \
   --target-path 7 \

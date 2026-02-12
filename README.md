@@ -29,15 +29,23 @@ when that happened.
 ## 🛠️ Usage
 
 1. **Training**  
-   - Run `./scripts/train.sh` (or `uv run python train.py ...`) to launch training with the desired hyperparameters. Use `--render` if you want to see the pygame window, `--enable-wandb` to log metrics, and adjust CLI flags for map size, target path, environment probabilities, and agent hyperparameters.
+   - Run `./scripts/train.sh` (or `uv run python train.py ...`) to launch training with the desired hyperparameters. Select the algorithm with `--algo dqn` or `--algo ppo`.
+   - DQN example: `uv run python train.py --algo dqn --checkpoint-dir model_output/dqn`.
+   - PPO example: `uv run python train.py --algo ppo --checkpoint-dir model_output/ppo --rollout-steps 512 --ppo-epochs 4 --ppo-minibatch-size 64`.
+   - Use `--render` if you want to see the pygame window, `--enable-wandb` to log metrics, and adjust CLI flags for map size, target path, environment probabilities, and agent hyperparameters.
 2. **Inference**  
-   - Run `./scripts/inference.sh` (or `uv run python inference.py ...`) pointing to a saved checkpoint (`.safetensors`). Enable `--render` to view the agent editing the grid, and set `--save-dir` to dump combined screenshots (initial layout / heatmap / final layout) per episode.
+   - Run `./scripts/inference.sh` (or `uv run python inference.py ...`) pointing to a saved checkpoint (`.safetensors`) and the matching `--algo`.
+   - DQN example: `uv run python inference.py --algo dqn --checkpoint model_output/dqn/weights_1000.safetensors`.
+   - PPO example: `uv run python inference.py --algo ppo --checkpoint model_output/ppo/weights_1000.safetensors`.
+   - Enable `--render` to view the agent editing the grid, and set `--save-dir` to dump combined screenshots (initial layout / heatmap / final layout) per episode.
 3. **Scripts / CLI**  
    - Both scripts expose all configurable knobs (grid size, target path, `prob_empty`, `change_percentage`, device/dtype selection, etc.) so you can quickly experiment without editing the code. Use `--help` on either Python entry point to see the complete list of options. All helper scripts assume the [uv](https://docs.astral.sh/uv/getting-started/installation/) project/package manager is installed and available.
 
 ## 🤖 Agent
 
 ### 👀 Overview
+The codebase now supports both DQN and PPO training/inference via the `--algo` flag. The detailed section below describes the DQN setup.
+
 The project uses a DQN agent that predicts two things for each state:
 
 - A grid of Q-values, one per coordinate, telling us where to edit.

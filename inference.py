@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from dqn_agent import DQNAgent
 from environment import Environment
+from ppo_agent import PPOAgent
 
 
 def resolve_device(arg):
@@ -39,7 +40,7 @@ def observation_to_tensor(observation, device, dtype):
     return torch.tensor(stacked, dtype=dtype, device=device).unsqueeze(0)
 
 
-def run_episode(env, agent, device, dtype, render=True, save_dir=None, episode_idx=0):
+def run_episode(env, agent, device, dtype, algo='dqn', render=True, save_dir=None, episode_idx=0):
     observation = env.reset()
     first_obs = observation
     state_tensor = observation_to_tensor(observation, device, dtype)
@@ -50,7 +51,12 @@ def run_episode(env, agent, device, dtype, render=True, save_dir=None, episode_i
         if render:
             env.render()
             pygame.display.flip()
-        action, value = agent.act(state_tensor)
+
+        if algo == 'dqn':
+            action, value = agent.act(state_tensor)
+        else:
+            action, value, *_ = agent.act(state_tensor, deterministic=True)
+
         next_observation, reward, done = env.step(action, value)
         total_reward += reward
         state_tensor = observation_to_tensor(next_observation, device, dtype)
@@ -100,7 +106,8 @@ def run_episode(env, agent, device, dtype, render=True, save_dir=None, episode_i
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run inference with a trained DQN agent.")
+    parser = argparse.ArgumentParser(description="Run inference with a trained DQN or PPO agent.")
+    parser.add_argument("--algo", choices=['dqn', 'ppo'], default='dqn', help="Agent type for checkpoint loading.")
     parser.add_argument("--checkpoint", required=True, help="Path to the trained model weights.")
     parser.add_argument("--map-size", type=int, default=7, help="Map dimension (n x n).")
     parser.add_argument("--episodes", type=int, default=1, help="Number of inference episodes to run.")
@@ -134,9 +141,14 @@ def main():
         prob_empty=args.prob_empty,
         change_percentage=args.change_percentage,
     )
-    agent = DQNAgent(args.map_size, 2, dtype, device)
-    agent.load(args.checkpoint)
-    agent.epsilon = 0.0
+
+    if args.algo == 'dqn':
+        agent = DQNAgent(args.map_size, 2, dtype, device)
+        agent.load(args.checkpoint)
+        agent.epsilon = 0.0
+    else:
+        agent = PPOAgent(args.map_size, dtype, device)
+        agent.load(args.checkpoint)
 
     for episode in tqdm(range(args.episodes), desc="Inference episodes", unit="episode"):
         total_reward, last_obs, quit_requested = run_episode(
@@ -144,6 +156,7 @@ def main():
             agent,
             device,
             dtype,
+            algo=args.algo,
             render=args.render,
             save_dir=args.save_dir,
             episode_idx=episode,
