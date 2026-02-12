@@ -82,8 +82,25 @@ class PPOAgent:
         self.optimizer = optim.AdamW(self.model.parameters(), lr=learning_rate, amsgrad=True)
         self.rollout = RolloutBuffer()
 
+    def _has_interior(self):
+        return self.grid_size > 2
+
+    def _mask_coord_logits(self, coord_logits):
+        if not self._has_interior():
+            return coord_logits
+        masked = coord_logits.clone()
+        side = self.grid_size
+        mask = torch.zeros((side, side), dtype=torch.bool, device=coord_logits.device)
+        mask[0, :] = True
+        mask[-1, :] = True
+        mask[:, 0] = True
+        mask[:, -1] = True
+        masked[:, mask.view(-1)] = float("-inf")
+        return masked
+
     def _distributions(self, states):
         coord_logits, tile_logits, values = self.model(states)
+        coord_logits = self._mask_coord_logits(coord_logits)
         coord_dist = Categorical(logits=coord_logits)
         tile_dist = Categorical(logits=tile_logits)
         return coord_dist, tile_dist, values

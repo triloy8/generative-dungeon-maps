@@ -115,6 +115,28 @@ class DQNAgent:
             param.requires_grad = False
         self.target_update_interval = target_update_interval
         self.train_steps = 0
+
+    def _has_interior(self):
+        return self.grid_size > 2
+
+    def _sample_random_coord(self):
+        if self._has_interior():
+            rand_x = random.randrange(1, self.grid_size - 1)
+            rand_y = random.randrange(1, self.grid_size - 1)
+        else:
+            rand_x = random.randrange(self.grid_size)
+            rand_y = random.randrange(self.grid_size)
+        return [rand_x, rand_y]
+
+    def _masked_action_map(self, action_map):
+        if not self._has_interior():
+            return action_map
+        masked = action_map.clone()
+        masked[:, :, 0, :] = float("-inf")
+        masked[:, :, -1, :] = float("-inf")
+        masked[:, :, :, 0] = float("-inf")
+        masked[:, :, :, -1] = float("-inf")
+        return masked
     
     def remember(self, state, action, value, reward, next_state, done):
         """A method used to update the Replay Memory"""
@@ -123,15 +145,12 @@ class DQNAgent:
     def act(self, state):
         """A method used to predict the agents newest action and value based on a current state"""
         if np.random.rand() <= self.epsilon:
-            rand_x = random.randrange(self.grid_size)
-            rand_y = random.randrange(self.grid_size)
-            return [rand_x, rand_y], random.randrange(self.value_size)
+            return self._sample_random_coord(), random.randrange(self.value_size)
         with torch.no_grad():
             action, value = self.DQNmodel(state)
+            action = self._masked_action_map(action)
         if (torch.max(action[0])==0):
-            rand_x = random.randrange(self.grid_size)
-            rand_y = random.randrange(self.grid_size)
-            return [rand_x, rand_y], random.randrange(self.value_size)
+            return self._sample_random_coord(), random.randrange(self.value_size)
         else:
             grid = action[0, 0]  # drop the channel axis -> grid_size x grid_size
             max_coords = torch.nonzero(grid == grid.max(), as_tuple=False)
@@ -156,6 +175,8 @@ class DQNAgent:
         with torch.no_grad():
             next_online_act, next_online_val = self.DQNmodel(next_state_batch.to(self.device))
             next_target_act, next_target_val = self.target_model(next_state_batch.to(self.device))
+            next_online_act = self._masked_action_map(next_online_act)
+            next_target_act = self._masked_action_map(next_target_act)
 
         # current states must keep grads for the update
         curr_act, curr_val = self.DQNmodel(state_batch.to(self.device))

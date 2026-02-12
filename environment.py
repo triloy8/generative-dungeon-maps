@@ -82,9 +82,12 @@ class Environment:
 
         x, y = action
         previous_value = self.map_layout[y][x]
-        self.map_layout[y][x] = value
-        if previous_value != value:
-            self.changes += 1
+        tile_changed = False
+        if not self._is_border(x, y):
+            self.map_layout[y][x] = value
+            tile_changed = previous_value != value
+            if tile_changed:
+                self.changes += 1
         self.walkable_tiles = self._get_walkable_tiles(self.map_layout)
         self._update_colors()
 
@@ -96,7 +99,7 @@ class Environment:
         self.budget_exhausted = budget_exhausted
         done = int(self._is_episode_over(new_stats) or budget_exhausted)
 
-        if previous_value != value:
+        if tile_changed:
             self.heatmap[y][x] = min(self.heatmap[y][x] + 1.0, self.max_changes)
 
         observation = self._get_observation()
