@@ -12,19 +12,20 @@ The goal is to generate top-down dungeon layouts composed of solid and walkable 
 
 ## 🧱 Generated Dungeons
 
-The samples below come from a policy trained on 10×10 grids with a target path
-of 5, then evaluated on 14×14 grids with a target path of 7. This was a short
-training run, so inference occasionally stalled, I simply reran the inference script
-when that happened.
+Try the live PPO demo on Hugging Face:
+<a href="https://huggingface.co/spaces/trixyL/gdm-ppo"><b>trixyL/gdm-ppo</b></a>
+
+The samples below are PPO inference outputs from a policy trained on 15×15 grids
+with a target path of 5, then evaluated on 20×20 grids with a target path of 20.
 
 ![Dungeon layout 000](screenshots/dungeon_000.png)
-*Episode 1 – reward 147, regions 1, path length 35, frame 22*
+*Episode 1 – reward 233, regions 1, path length 74, frame 233*
 
 ![Dungeon layout 001](screenshots/dungeon_001.png)
-*Episode 2 – reward 59, regions 1, path length 42, frame 7*
+*Episode 2 – reward 221, regions 1, path length 44, frame 370*
 
 ![Dungeon layout 002](screenshots/dungeon_002.png)
-*Episode 3 – reward 124, regions 1, path length 31, frame 19*
+*Episode 3 – reward 219, regions 1, path length 47, frame 294*
 
 ## 🛠️ Usage
 
