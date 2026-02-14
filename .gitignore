@@ -222,5 +222,6 @@ todo/
 model_output/
 inference_output/
 inference_output_ppo/
+inference_output_random/
 wandb/
 gym-pcgrl/

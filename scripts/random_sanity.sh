@@ -2,14 +2,15 @@
 set -euo pipefail
 
 uv run python3 inference.py \
-  --algo ppo \
-  --checkpoint model_output/ppo/weights_2000.safetensors \
+  --algo random \
   --map-size 20 \
   --episodes 3 \
   --target-path 20 \
-  --render \
-  --save-dir inference_output_ppo \
+  --save-dir inference_output_random \
   --prob-empty 0.2 \
   --change-percentage 0.5 \
   --device cuda \
-  --dtype float32
+  --render \
+  --random-mode carve \
+  --dtype float32 \
+  --seed 42

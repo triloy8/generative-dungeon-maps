@@ -11,6 +11,34 @@ from environment import Environment
 from ppo_agent import PPOAgent
 
 
+class RandomAgent:
+    def __init__(self, map_size, value_size, seed=None, mode="uniform"):
+        self.map_size = map_size
+        self.value_size = value_size
+        self.rng = np.random.default_rng(seed)
+        self.mode = mode
+
+    def _sample_interior(self):
+        x = int(self.rng.integers(1, self.map_size - 1))
+        y = int(self.rng.integers(1, self.map_size - 1))
+        return x, y
+
+    def act(self, state_tensor):
+        if self.mode == "carve":
+            map_tensor = state_tensor[0, 0]
+            map_np = map_tensor.detach().cpu().numpy()
+            solid_positions = np.argwhere(map_np[1:-1, 1:-1] == 1)
+            if solid_positions.shape[0] > 0:
+                idx = int(self.rng.integers(0, solid_positions.shape[0]))
+                y, x = solid_positions[idx]
+                return (int(x + 1), int(y + 1)), 0
+
+        # Sample from interior cells to avoid guaranteed no-op border edits.
+        x, y = self._sample_interior()
+        value = int(self.rng.integers(0, self.value_size))
+        return (x, y), value
+
+
 def resolve_device(arg):
     if arg.lower() == "auto":
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -64,6 +92,8 @@ def run_episode(
 
         if algo == 'dqn':
             action, value = agent.act(state_tensor)
+        elif algo == 'random':
+            action, value = agent.act(state_tensor)
         else:
             action, value, *_ = agent.act(state_tensor, deterministic=deterministic_ppo)
 
@@ -116,9 +146,9 @@ def run_episode(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run inference with a trained DQN or PPO agent.")
-    parser.add_argument("--algo", choices=['dqn', 'ppo'], default='dqn', help="Agent type for checkpoint loading.")
-    parser.add_argument("--checkpoint", required=True, help="Path to the trained model weights.")
+    parser = argparse.ArgumentParser(description="Run inference with a trained DQN/PPO agent or a random baseline.")
+    parser.add_argument("--algo", choices=['dqn', 'ppo', 'random'], default='dqn', help="Agent type to run.")
+    parser.add_argument("--checkpoint", default=None, help="Path to trained model weights (required for DQN/PPO).")
     parser.add_argument("--map-size", type=int, default=7, help="Map dimension (n x n).")
     parser.add_argument("--episodes", type=int, default=1, help="Number of inference episodes to run.")
     parser.add_argument("--target-path", type=int, default=1, help="Target path improvement threshold.")
@@ -129,7 +159,17 @@ def main():
     parser.add_argument("--change-percentage", type=float, default=0.2, help="Fraction of tiles allowed to change.")
     parser.add_argument("--device", default="auto", help="Torch device to use ('auto', 'cpu', 'cuda', etc.).")
     parser.add_argument("--dtype", default="float32", help="Torch dtype (float32, float16, bfloat16, float64).")
+    parser.add_argument("--seed", type=int, default=None, help="Random seed (used by random baseline).")
+    parser.add_argument(
+        "--random-mode",
+        choices=["uniform", "carve"],
+        default="uniform",
+        help="Random policy variant: 'uniform' samples random tiles/values, 'carve' only turns solid tiles into walkable tiles.",
+    )
     args = parser.parse_args()
+
+    if args.algo in {"dqn", "ppo"} and not args.checkpoint:
+        parser.error("--checkpoint is required when --algo is 'dqn' or 'ppo'.")
 
     device = resolve_device(args.device)
     dtype = resolve_dtype(args.dtype)
@@ -157,9 +197,11 @@ def main():
         agent = DQNAgent(args.map_size, 2, dtype, device)
         agent.load(args.checkpoint)
         agent.epsilon = 0.0
-    else:
+    elif args.algo == 'ppo':
         agent = PPOAgent(args.map_size, dtype, device)
         agent.load(args.checkpoint)
+    else:
+        agent = RandomAgent(args.map_size, 2, seed=args.seed, mode=args.random_mode)
 
     for episode in tqdm(range(args.episodes), desc="Inference episodes", unit="episode"):
         total_reward, last_obs, quit_requested = run_episode(

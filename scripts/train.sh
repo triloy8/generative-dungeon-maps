@@ -3,8 +3,8 @@ set -euo pipefail
 
 uv run python3 train.py \
   --algo ppo \
-  --map-size  10 \
-  --episodes 1000 \
+  --map-size  15 \
+  --episodes 2000 \
   --target-path 5 \
   --checkpoint-dir model_output/ppo \
   --save-every 50 \

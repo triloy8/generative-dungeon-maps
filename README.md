@@ -38,6 +38,8 @@ with a target path of 5, then evaluated on 20×20 grids with a target path of 20
    - Run `./scripts/inference.sh` (or `uv run python inference.py ...`) pointing to a saved checkpoint (`.safetensors`) and the matching `--algo`.
    - DQN example: `uv run python inference.py --algo dqn --checkpoint model_output/dqn/weights_1000.safetensors`.
    - PPO example: `uv run python inference.py --algo ppo --checkpoint model_output/ppo/weights_1000.safetensors`.
+   - Random baseline sanity check (uniform): `uv run python inference.py --algo random --random-mode uniform --map-size 20 --episodes 3 --target-path 20 --prob-empty 0.2 --change-percentage 0.5 --seed 42` (or run `./scripts/random_sanity.sh`).
+   - Random baseline sanity check (carve-only `1->0`): `uv run python inference.py --algo random --random-mode carve --map-size 20 --episodes 3 --target-path 20 --prob-empty 0.2 --change-percentage 0.5 --seed 42` (or run `./scripts/random_carve_sanity.sh`).
    - Enable `--render` to view the agent editing the grid, and set `--save-dir` to dump combined screenshots (initial layout / heatmap / final layout) per episode.
 3. **Scripts / CLI**  
    - Both scripts expose all configurable knobs (grid size, target path, `prob_empty`, `change_percentage`, device/dtype selection, etc.) so you can quickly experiment without editing the code. Use `--help` on either Python entry point to see the complete list of options. All helper scripts assume the [uv](https://docs.astral.sh/uv/getting-started/installation/) project/package manager is installed and available.
